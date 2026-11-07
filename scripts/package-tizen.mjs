@@ -19,10 +19,12 @@ const requireConfiguredRuntimeEnv = /^(1|true|yes|on)$/i.test(
   String(process.env.NUVIO_REQUIRE_LOCAL_PROPERTIES || "")
 );
 
-const appName = "Nuvio TV";
-const defaultTizenPackageId = "NuvioTV001";
-const defaultTizenAppId = "NuvioTV001.NuvioTV";
+// Nuvio Live: own name and Tizen IDs so it installs alongside official Nuvio.
+const appName = "Nuvio Live";
+const defaultTizenPackageId = "NuvioLv001";
+const defaultTizenAppId = "NuvioLv001.NuvioLive";
 const defaultWidgetUri = "https://nuvio.tv";
+const defaultWidgetId = "https://nuvio.tv/live";
 const tizenEngineFsServiceRelativePath = "services/tizen/enginefs-service.js";
 const tizenEngineFsRuntimeDirRelativePath = "services/tizen/runtime";
 const tizenPluginServiceRelativePath = "services/tizen/plugin-service.js";
@@ -112,7 +114,7 @@ function buildConfigXml({
 `
     : "";
   return `<?xml version="1.0" encoding="UTF-8"?>
-<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="${defaultWidgetUri}" version="${version}" viewmodes="maximized">
+<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="${defaultWidgetId}" version="${version}" viewmodes="maximized">
   <access origin="*" subdomains="true"/>
   <tizen:application id="${appId}" package="${packageId}" required_version="${compatibilityPolicy.tizenInstallMinimumVersion}"/>
   <author href="${defaultWidgetUri}">Nuvio</author>
