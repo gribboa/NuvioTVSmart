@@ -18,6 +18,11 @@ The plan and phase checkpoints are in [LIVE_TV_PLAN.md](LIVE_TV_PLAN.md).
 
 Build the package with `npm run package:tizen`; it writes `NuvioLv001_<version>.wgt` to the repo root.
 
+Upstream doesn't commit the service keys (Nuvio account, TMDB, Trakt, Simkl, …). Without a
+`local.properties` the build falls back to `local.example.properties` and those features don't work. For a
+personal build, put the values in a gitignored `local.properties` (same names as
+`local.example.properties`). Never commit it.
+
 ### Installing with the Nuvio TV Installer
 
 The stock installer works; no installer fork is needed. Choose **Samsung → Custom**, **Browse** to the
