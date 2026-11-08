@@ -6,7 +6,7 @@ import { LiveTvSourceStore } from "./data/sourceStore.js";
 import { LiveTvChannelStore } from "./data/channelStore.js";
 import { LiveTvEpgStore } from "./data/epgStore.js";
 import { LiveTvSettings } from "./data/liveTvPreferences.js";
-import { liveFetchFor } from "./data/liveTvHttp.js";
+import { liveFetchFor, loopbackServiceUrl } from "./data/liveTvHttp.js";
 import { parseM3u } from "./data/m3uParser.js";
 import {
   alternateLiveFormat,
@@ -59,7 +59,40 @@ function emit(reason) {
   });
 }
 
-function setChannels(channels, groups) {
+export const TEST_PATTERN_SOURCE_ID = "livetv-test";
+
+/** The built-in test pattern channel (Settings: "Test pattern channel"), first in the list. */
+function withTestPattern(channels, groups) {
+  const real = channels.filter((channel) => channel.sourceId !== TEST_PATTERN_SOURCE_ID);
+  const realGroups = groups.filter((group) => group.sourceId !== TEST_PATTERN_SOURCE_ID);
+  if (!LiveTvSettings.get().showTestPattern) return { channels: real, groups: realGroups };
+  const group = {
+    id: `${TEST_PATTERN_SOURCE_ID}:test`,
+    title: "Test",
+    sourceId: TEST_PATTERN_SOURCE_ID,
+    order: 0
+  };
+  const channel = {
+    key: `${TEST_PATTERN_SOURCE_ID}:pattern`,
+    sourceId: TEST_PATTERN_SOURCE_ID,
+    name: "Test pattern",
+    tvgId: "",
+    tvgName: "",
+    logo: "",
+    groupId: group.id,
+    group: group.title,
+    number: 0,
+    url: loopbackServiceUrl("/livetv-test-pattern.mp4"),
+    userAgent: "",
+    catchup: null,
+    xtream: null,
+    testPattern: true
+  };
+  return { channels: [channel, ...real], groups: [group, ...realGroups] };
+}
+
+function setChannels(allChannels, allGroups) {
+  const { channels, groups } = withTestPattern(allChannels, allGroups);
   state.channels = channels;
   state.groups = groups;
   state.byKey = new Map(channels.map((channel) => [channel.key, channel]));
@@ -144,6 +177,13 @@ export const LiveTvRepository = {
         LiveTvSourceStore.subscribe(() => {
           state.sources = LiveTvSourceStore.list();
           void reloadChannelsFromStore().then(() => emit("sources"));
+        });
+        let showTestPattern = LiveTvSettings.get().showTestPattern;
+        LiveTvSettings.subscribe((settings) => {
+          if (settings.showTestPattern === showTestPattern) return;
+          showTestPattern = settings.showTestPattern;
+          setChannels(state.channels, state.groups);
+          emit("sources");
         });
         void this.refreshIfStale();
       })().catch((error) => {

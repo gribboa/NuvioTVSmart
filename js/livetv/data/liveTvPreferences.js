@@ -24,6 +24,8 @@ export const LIVE_TV_SETTING_DEFAULTS = Object.freeze({
   showFavouritesRowOnHome: true,
   // Preview the focused channel in the guide.
   showPreview: true,
+  // A built-in "Test pattern" channel (rulers and coloured edges) for checking the picture.
+  showTestPattern: false,
   use24HourClock: true
 });
 

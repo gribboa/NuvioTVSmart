@@ -304,6 +304,10 @@ async function stageTizenPluginService() {
       path.join(stagingDir, "services/livetv-proxy.cjs")
     ),
     cp(
+      path.join(rootDir, "services/livetv-test-pattern.mp4"),
+      path.join(stagingDir, "services/livetv-test-pattern.mp4")
+    ),
+    cp(
       path.join(rootDir, tizenPluginServiceSourceRelativePath),
       path.join(stagingDir, tizenPluginServiceSourceRelativePath)
     )

@@ -73,6 +73,7 @@ export function createLiveTvScreenMethods04() {
             <p class="livetv-source-status" id="livetvSettingsGuideStatus"></p>
             ${settingRow({ action: "toggleSetting", key: "showPreview", title: t("livetv_setting_preview"), value: onOff(settings.showPreview), focusKey: "set:showPreview" })}
             ${settingRow({ action: "toggleSetting", key: "showFavouritesRowOnHome", title: t("livetv_setting_home_row"), value: onOff(settings.showFavouritesRowOnHome), focusKey: "set:showFavouritesRowOnHome" })}
+            ${settingRow({ action: "toggleSetting", key: "showTestPattern", title: t("livetv_setting_test_pattern"), value: onOff(settings.showTestPattern), focusKey: "set:showTestPattern" })}
             ${settingRow({ action: "toggleSetting", key: "use24HourClock", title: t("livetv_setting_24h"), value: onOff(settings.use24HourClock), focusKey: "set:use24HourClock" })}
             ${settingRow({ action: "cycleSetting", key: "guideFutureDays", title: t("livetv_setting_days_ahead"), value: t("livetv_days", { count: settings.guideFutureDays }), focusKey: "set:guideFutureDays" })}
             ${settingRow({ action: "cycleSetting", key: "guidePastHours", title: t("livetv_setting_days_back"), value: t("livetv_days", { count: Math.round(settings.guidePastHours / 24) }), focusKey: "set:guidePastHours" })}

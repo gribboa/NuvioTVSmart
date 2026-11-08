@@ -75,3 +75,32 @@ test("rejects non-http links", async () => {
   );
   assert.equal(response.status, 400);
 });
+
+test("serves the test pattern video, with byte ranges", async () => {
+  const { size } = await import("node:fs").then((fs) =>
+    fs.statSync(new URL("../services/livetv-test-pattern.mp4", import.meta.url))
+  );
+  const whole = await fetch(`${pluginBase}/livetv-test-pattern.mp4`);
+  assert.equal(whole.status, 200);
+  assert.equal(whole.headers.get("content-type"), "video/mp4");
+  assert.equal(whole.headers.get("accept-ranges"), "bytes");
+  assert.equal((await whole.arrayBuffer()).byteLength, size);
+
+  const part = await fetch(`${pluginBase}/livetv-test-pattern.mp4`, {
+    headers: { Range: "bytes=10-19" }
+  });
+  assert.equal(part.status, 206);
+  assert.equal(part.headers.get("content-range"), `bytes 10-19/${size}`);
+  assert.equal((await part.arrayBuffer()).byteLength, 10);
+
+  const tail = await fetch(`${pluginBase}/livetv-test-pattern.mp4`, {
+    headers: { Range: "bytes=-5" }
+  });
+  assert.equal(tail.status, 206);
+  assert.equal((await tail.arrayBuffer()).byteLength, 5);
+
+  const beyond = await fetch(`${pluginBase}/livetv-test-pattern.mp4`, {
+    headers: { Range: `bytes=${size + 10}-` }
+  });
+  assert.equal(beyond.status, 416);
+});

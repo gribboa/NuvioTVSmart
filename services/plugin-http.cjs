@@ -1217,6 +1217,18 @@ function createPluginHttpServer({ port = 2711, logger = console, trace } = {}) {
       }
       return;
     }
+    // Nuvio Live: the test pattern channel's video (see livetv-proxy.cjs).
+    if (
+      String(request.url || "").indexOf("/livetv-test-pattern.mp4") === 0 &&
+      (request.method === "GET" || request.method === "HEAD")
+    ) {
+      try {
+        require("./livetv-proxy.cjs").testPattern(request, response);
+      } catch (_) {
+        send(response, 503, { returnValue: false });
+      }
+      return;
+    }
     // Nuvio Live: phone setup for IPTV providers (see livetv-setup.cjs).
     if (request.url === "/livetv-setup" && request.method === "POST") {
       readBody(request, function (bodyError, payload) {

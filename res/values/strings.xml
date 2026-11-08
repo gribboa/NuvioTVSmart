@@ -3418,6 +3418,7 @@
     <string name="livetv_setting_groups_hint">Press OK on a group to hide or show it.</string>
     <string name="livetv_setting_home_row">Favourite channels on Home</string>
     <string name="livetv_setting_preview">Preview in the guide</string>
+    <string name="livetv_setting_test_pattern">Test pattern channel (for checking the picture)</string>
     <string name="livetv_setting_refresh_every">Update the guide every</string>
     <string name="livetv_setting_refresh_guide">Update the guide now</string>
     <string name="livetv_setting_user_agent">User-Agent for %1$s</string>

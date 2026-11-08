@@ -33,6 +33,12 @@ Settings live under **Live TV → Providers & settings** (also **Settings → Li
 days ahead / back, refresh interval, preview on/off, the Home row, 24-hour clock, hiding groups, and a
 User-Agent per provider (presets, for providers that block unknown players).
 
+**Test pattern channel** (off by default) adds a "Test pattern" channel at the top of the list: a 1920×1080
+video with rulers along every edge (1 % ticks, labels every 10 %), coloured edges (red top, green bottom,
+blue left, yellow right), a circle that should look round, and a running clock. Use it to see how much of
+the picture the preview or the full-screen player shows. The video is `services/livetv-test-pattern.mp4`,
+served by the plugin service at `/livetv-test-pattern.mp4`.
+
 ## Installs alongside official Nuvio
 
 |                  | Official Nuvio       | Nuvio Live              |
@@ -100,7 +106,7 @@ js/ui/screens/livetv/
   livePlayerHooks.js        zapping, banner, channel list, fallback, Back <- LiveTvPlayerPanel.kt, LiveTvOverlayMode.kt
   liveHomeHooks.js          Home "Favourite channels" row                 <- LiveTvHomeRow.kt
 services/livetv-setup.cjs   phone setup page (LAN, while open)
-services/livetv-proxy.cjs   loopback pass-through: CORS, User-Agent, streamed (no size limit)
+services/livetv-proxy.cjs   loopback pass-through: CORS, User-Agent, streamed (no size limit); test pattern video
 ```
 
 - **Playback** goes through the app's PlayerScreen (AVPlay / hls.js, its proxy for headers). A channel is
@@ -134,21 +140,21 @@ Keep this list complete so rebasing onto upstream stays easy. New code lives in 
 `js/ui/screens/livetv/`, `js/ui/screens/settings/settingsLiveTvSection.js`, `css/livetv*.css`,
 `services/livetv-*.cjs` and `scripts/test-livetv-*.mjs`.
 
-| File                                                                 | Why                                                                                        |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `scripts/package-tizen.mjs`                                          | App name, Tizen ids and widget id; packages and requires `services/livetv-*.cjs`.          |
-| `services/plugin-http.cjs`                                           | Loopback routes `POST /livetv-setup` (phone setup) and `GET /livetv-proxy` (pass-through). |
-| `js/ui/navigation/router.js`                                         | Registers the `liveTv` route; installs the player and Home hooks.                          |
-| `js/bootstrap/renderAppShell.js`                                     | The `#liveTv` screen container.                                                            |
-| `js/ui/components/sidebarNavigationHelpers-01-root-sidebar-items.js` | The "Live TV" sidebar item.                                                                |
-| `js/ui/screens/library/libraryScreenMethods-07-activate-node.js`     | Library lists the sidebar actions it handles; adds `gotoLiveTv`.                           |
-| `js/ui/screens/settings/settingsScreenHelpers-03-*.js`               | The "Live TV" settings section and its icon.                                               |
-| `js/ui/screens/settings/settingsScreenMethods-12-*.js`               | Renders the Live TV settings section.                                                      |
-| `js/platform/adapters/tizenAdapter.js`                               | Registers the `ChannelUp` / `ChannelDown` keys.                                            |
-| `js/core/update/appUpdateService.js`                                 | Checks this fork's releases, so Nuvio Live never offers official Nuvio's updates.          |
-| `res/values/strings.xml`                                             | `nav_live_tv` and `livetv_*` strings (English only so far).                                |
-| `package.json`, `package-lock.json`                                  | `test:livetv` script; `pako` as a direct dependency (it was already installed via jszip).  |
-| `README.md`                                                          | A note about this fork.                                                                    |
+| File                                                                 | Why                                                                                                                        |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/package-tizen.mjs`                                          | App name, Tizen ids and widget id; packages `services/livetv-*` (requires the `.cjs` files).                               |
+| `services/plugin-http.cjs`                                           | Loopback routes `POST /livetv-setup` (phone setup), `GET /livetv-proxy` (pass-through) and `GET /livetv-test-pattern.mp4`. |
+| `js/ui/navigation/router.js`                                         | Registers the `liveTv` route; installs the player and Home hooks.                                                          |
+| `js/bootstrap/renderAppShell.js`                                     | The `#liveTv` screen container.                                                                                            |
+| `js/ui/components/sidebarNavigationHelpers-01-root-sidebar-items.js` | The "Live TV" sidebar item.                                                                                                |
+| `js/ui/screens/library/libraryScreenMethods-07-activate-node.js`     | Library lists the sidebar actions it handles; adds `gotoLiveTv`.                                                           |
+| `js/ui/screens/settings/settingsScreenHelpers-03-*.js`               | The "Live TV" settings section and its icon.                                                                               |
+| `js/ui/screens/settings/settingsScreenMethods-12-*.js`               | Renders the Live TV settings section.                                                                                      |
+| `js/platform/adapters/tizenAdapter.js`                               | Registers the `ChannelUp` / `ChannelDown` keys.                                                                            |
+| `js/core/update/appUpdateService.js`                                 | Checks this fork's releases, so Nuvio Live never offers official Nuvio's updates.                                          |
+| `res/values/strings.xml`                                             | `nav_live_tv` and `livetv_*` strings (English only so far).                                                                |
+| `package.json`, `package-lock.json`                                  | `test:livetv` script; `pako` as a direct dependency (it was already installed via jszip).                                  |
+| `README.md`                                                          | A note about this fork.                                                                                                    |
 
 ## Known gaps
 

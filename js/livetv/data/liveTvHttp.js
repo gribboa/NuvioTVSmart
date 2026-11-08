@@ -29,6 +29,13 @@ export async function resolveLiveTvServicePort() {
   return port;
 }
 
+/** A link served by this app's plugin service, for AVPlay (which can't wait for a port lookup). */
+export function loopbackServiceUrl(path) {
+  const port =
+    Number(globalThis.__NUVIO_LIVETV_SETUP_PORT__ || 0) || (Platform.isWebOS() ? 2721 : 2711);
+  return `http://127.0.0.1:${port}${path}`;
+}
+
 export function proxiedUrl(port, url, userAgent = "") {
   const ua = userAgent ? `&ua=${encodeURIComponent(userAgent)}` : "";
   return `http://127.0.0.1:${port}/livetv-proxy?url=${encodeURIComponent(url)}${ua}`;

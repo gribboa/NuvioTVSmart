@@ -91,4 +91,35 @@ function handle(request, response) {
   forward(target, String(query.get("ua") || "").slice(0, 512), MAX_REDIRECTS, request, response);
 }
 
-module.exports = { handle: handle };
+// GET /livetv-test-pattern.mp4: the test pattern channel's video (packaged next to this file).
+function testPattern(request, response) {
+  var fs = require("fs");
+  var file = require("path").join(__dirname, "livetv-test-pattern.mp4");
+  fs.stat(file, function (statError, stat) {
+    if (statError) return fail(response, 404, "missing");
+    var headers = {
+      "Content-Type": "video/mp4",
+      "Accept-Ranges": "bytes",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-Control": "no-store"
+    };
+    var range = /^bytes=(\d*)-(\d*)$/.exec(String(request.headers.range || ""));
+    var start = 0;
+    var end = stat.size - 1;
+    if (range && (range[1] || range[2])) {
+      start = range[1] ? Number(range[1]) : Math.max(0, stat.size - Number(range[2]));
+      end = range[1] && range[2] ? Math.min(Number(range[2]), end) : end;
+      if (start > end) {
+        response.writeHead(416, { "Content-Range": "bytes */" + stat.size });
+        return response.end();
+      }
+      headers["Content-Range"] = "bytes " + start + "-" + end + "/" + stat.size;
+    }
+    headers["Content-Length"] = String(end - start + 1);
+    response.writeHead(range && (range[1] || range[2]) ? 206 : 200, headers);
+    if (request.method === "HEAD") return response.end();
+    fs.createReadStream(file, { start: start, end: end }).pipe(response);
+  });
+}
+
+module.exports = { handle: handle, testPattern: testPattern };
