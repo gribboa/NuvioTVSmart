@@ -3399,6 +3399,8 @@
     <string name="livetv_hint_no_catchup">This channel has no catch-up for that programme.</string>
     <string name="livetv_hint_ok_catchup">Press OK to watch from the start. Hold OK to add or remove a favourite.</string>
     <string name="livetv_hint_ok_watch">Press OK to watch. Hold OK to add or remove a favourite.</string>
+    <string name="livetv_hint_ok_preview">Press OK to play it in the preview, then OK again for full screen. Hold OK to add or remove a favourite.</string>
+    <string name="livetv_hint_ok_fullscreen">Playing in the preview. Press OK or Back for full screen. Hold OK to add or remove a favourite.</string>
     <string name="livetv_live_now">LIVE</string>
     <string name="livetv_loading_channels">Loading channels…</string>
     <string name="livetv_manage_sources">Providers &amp; settings</string>

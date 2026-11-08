@@ -1,7 +1,9 @@
 // Nuvio Live: moving around the guide with the SolarCell remote.
 // Up/Down: channels. Left/Right: programmes in time (Left at the start goes to the channel
-// column, then the sidebar). OK: watch (live), catch-up (past), details (future). Long-press OK:
-// favourite. CH +/-: a page of channels. Back: channel column, then sidebar.
+// column, then the sidebar). OK on a live programme: play it in the preview, OK again: full screen
+// (straight to full screen with the preview off). OK on the past: catch-up; on the future: when it
+// starts. Long-press OK: favourite. CH +/-: a page of channels. Back: full screen for the channel in
+// the preview; with no preview, the channel column, then the sidebar.
 // Behaviour follows NuvioPlusIPTV (GPL-3.0), ui/LiveTvGuideScreen.kt.
 import { LiveTvRepository } from "../../../livetv/liveTvRepository.js";
 import { LiveTvProfileState, LiveTvSettings } from "../../../livetv/data/liveTvPreferences.js";
@@ -55,6 +57,10 @@ export function createLiveTvScreenMethods03() {
     consumeGuideBack() {
       const guide = this.guide;
       if (!guide) return false;
+      if (this.previewActive()) {
+        void this.watchPreviewFullScreen();
+        return true;
+      }
       if (guide.zone === "grid" && guide.column === "programme") {
         guide.column = "channel";
         guide.viewStartMs = floorToSlot(Date.now());
@@ -231,7 +237,7 @@ export function createLiveTvScreenMethods03() {
       return this.tabChannelKeys().slice();
     },
 
-    /** OK in the grid: watch live, play catch-up, or say when a future programme starts. */
+    /** OK in the grid: preview or watch live, play catch-up, or say when a future programme starts. */
     async activateGuideFocus() {
       const guide = this.guide;
       const channel = this.focusedChannel();
@@ -254,6 +260,12 @@ export function createLiveTvScreenMethods03() {
         );
         return;
       }
+      const previewOn = LiveTvSettings.get().showPreview;
+      if (previewOn && channel.key !== guide.previewKey) {
+        this.previewChannel(channel);
+        return;
+      }
+      if (previewOn && (await this.watchPreviewFullScreen())) return;
       const { now: current } = await LiveTvRepository.getNowNext(channel.key, now);
       await playLiveChannel(channel, {
         zapKeys: this.zapKeysForPlayer(),

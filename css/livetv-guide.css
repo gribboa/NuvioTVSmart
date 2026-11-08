@@ -304,6 +304,15 @@
   font-size: var(--tv-secondary-text);
 }
 
+.livetv-chan-playing {
+  color: #e53935;
+  font-size: 2.2vh;
+}
+
+.livetv-row .livetv-chan.focused .livetv-chan-playing {
+  color: inherit;
+}
+
 .livetv-chan-fav {
   color: #ffc107;
   font-size: 2.2vh;

@@ -10,21 +10,22 @@ The plan and phase checkpoints are in [LIVE_TV_PLAN.md](LIVE_TV_PLAN.md).
 
 ## Using it
 
-| Where              | Remote                 | Does                                                                        |
-| ------------------ | ---------------------- | --------------------------------------------------------------------------- |
-| Guide              | Up / Down              | Channels                                                                    |
-|                    | Left / Right           | Programmes in time (past ones only on catch-up channels)                    |
-|                    | OK                     | Live programme: watch. Past programme: catch-up. Future: shows start time   |
-|                    | Hold OK                | Add / remove favourite                                                      |
-|                    | CH + / CH -            | A page of channels                                                          |
-|                    | Up from the top row    | Group tabs (Favourites, Recent, All channels, groups, Providers & settings) |
-|                    | Back                   | Channel column, then the sidebar                                            |
-| Watching a channel | CH + / CH -, Up / Down | Next / previous channel in the group you came from (wraps round)            |
-|                    | OK                     | Channel banner (now / next); OK again: channel list                         |
-|                    | Left                   | Channel list over the video                                                 |
-|                    | Right                  | The player's own controls (audio, subtitles, ...)                           |
-|                    | Back                   | Back to the guide, on the channel you were watching                         |
-| Home               | OK on a channel        | Watch it; CH +/- moves through your favourites                              |
+| Where              | Remote                 | Does                                                                                  |
+| ------------------ | ---------------------- | ------------------------------------------------------------------------------------- |
+| Guide              | Up / Down              | Channels                                                                              |
+|                    | Left / Right           | Programmes in time (past ones only on catch-up channels)                              |
+|                    | OK                     | Live: play in the preview; OK again: full screen. Past: catch-up. Future: start time  |
+|                    | Hold OK                | Add / remove favourite                                                                |
+|                    | CH + / CH -            | A page of channels                                                                    |
+|                    | Up from the top row    | Group tabs (Favourites, Recent, All channels, groups, Providers & settings)           |
+|                    | Back                   | Full screen for the channel in the preview (no preview: channel column, then sidebar) |
+|                    | Left from the channels | The sidebar                                                                           |
+| Watching a channel | CH + / CH -, Up / Down | Next / previous channel in the group you came from (wraps round)                      |
+|                    | OK                     | Channel banner (now / next); OK again: channel list                                   |
+|                    | Left                   | Channel list over the video                                                           |
+|                    | Right                  | The player's own controls (audio, subtitles, ...)                                     |
+|                    | Back                   | Back to the guide, on the channel you were watching                                   |
+| Home               | OK on a channel        | Watch it; CH +/- moves through your favourites                                        |
 
 Favourites, recently watched channels and the last group are per profile. Providers and settings are shared
 by every profile and stay on the TV (not synced to the Nuvio account).
@@ -117,7 +118,11 @@ services/livetv-proxy.cjs   loopback pass-through: CORS, User-Agent, streamed (n
   content, so no player or Home file had to change.
 - **The guide preview** drives PlayerController directly: the player screen becomes a transparent layer
   over the guide with the video (AVPlay's object, or the video element for hls.js) in the preview's
-  rectangle. It starts after focus rests on a channel for 1 s (so scrolling past channels doesn't open a stream for each), and can be turned off in settings.
+  rectangle. It opens on the stream kept from full screen, or else the channel the guide opens on (the
+  last one watched), and then stays on that channel while you browse: OK on a live programme of another
+  channel moves it there, OK on the channel in the preview (or Back anywhere in the guide) goes full screen,
+  zapping through the group it was picked from. A speaker icon marks its row. With the preview turned off
+  in settings, OK goes straight to full screen and Back goes to the channel column, then the sidebar.
   AVPlay uses `PLAYER_DISPLAY_MODE_AUTO_ASPECT_RATIO` for the preview: with `…_FULL_SCREEN` the 2025
   Frame (Tizen 9) ignores the rectangle and draws the whole screen behind the box. The player's own
   display mode is put back when the preview stops. That Frame also puts the picture back to full screen

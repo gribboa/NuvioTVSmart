@@ -4,7 +4,7 @@
 import { LiveTvRepository } from "../../../livetv/liveTvRepository.js";
 import { LiveTvProfileState, LiveTvSettings } from "../../../livetv/data/liveTvPreferences.js";
 import { canPlayCatchup } from "../../../livetv/data/catchupUrl.js";
-import { keptSessionChannelKey, startLivePreview, stopLivePreview } from "../../../livetv/liveTvPlayback.js";
+import { keptSessionChannelKey, playLiveChannel, startLivePreview, stopLivePreview } from "../../../livetv/liveTvPlayback.js";
 import { escapeHtml, guideProblem, t } from "./liveTvScreenShared.js";
 import {
   GUIDE_SPAN_MS,
@@ -22,7 +22,8 @@ import { formatWhen } from "./liveTvScreenMethods-01-sources.js";
 import { setLegacySidebarExpanded, setModernSidebarExpanded } from "../../components/sidebarNavigation.js";
 
 const VISIBLE_ROWS = 7;
-const PREVIEW_DELAY_MS = 1000;
+// The first preview waits a moment, so a guide that redraws while it opens starts it once.
+const PREVIEW_DELAY_MS = 300;
 const TICK_MS = 30 * 1000;
 const READ_BEFORE_MS = 3 * 60 * MINUTE_MS;
 const READ_AFTER_MS = 6 * 60 * MINUTE_MS;
@@ -67,7 +68,11 @@ export function createLiveTvScreenMethods02() {
         focusMs: now,
         programmes: new Map(),
         loading: new Set(),
+        // The channel in the preview. It stays there while focus moves; OK on another channel
+        // moves it, OK on this one (or Back) goes full screen.
         previewKey: "",
+        previewTabId: "",
+        previewZapKeys: [],
         previewTimer: null,
         tickTimer: null,
         toastTimer: null,
@@ -314,6 +319,7 @@ export function createLiveTvScreenMethods02() {
       const end = this.viewEndMs();
       const nowLeft = ((now - start) / GUIDE_SPAN_MS) * 100;
       const favourites = new Set(LiveTvProfileState.get().favourites);
+      const previewKey = this.previewActive() ? guide.previewKey : "";
       const gridFocused = this.focusZone !== "sidebar" && guide.zone === "grid";
       const rows = [];
       for (let index = guide.topRow; index < Math.min(keys.length, guide.topRow + VISIBLE_ROWS); index += 1) {
@@ -353,6 +359,7 @@ export function createLiveTvScreenMethods02() {
               <span class="livetv-chan-number">${escapeHtml(channel.number || "")}</span>
               ${logoMarkup(channel, "livetv-chan-logo")}
               <span class="livetv-chan-name">${escapeHtml(channel.name)}</span>
+              ${channel.key === previewKey ? '<span class="livetv-chan-playing material-icons" aria-hidden="true">volume_up</span>' : ""}
               ${favourites.has(channel.key) ? '<span class="livetv-chan-fav material-icons" aria-hidden="true">star</span>' : ""}
             </div>
             <div class="livetv-progs">${cells}${nowLine}</div>
@@ -366,11 +373,13 @@ export function createLiveTvScreenMethods02() {
       const node = this.container.querySelector("#livetvDetails");
       const placeholder = this.container.querySelector("#livetvPreviewPlaceholder");
       const channel = this.focusedChannel();
+      const boxChannel = (this.previewActive() && LiveTvRepository.getChannel(this.guide.previewKey)) || channel;
       if (placeholder) {
-        placeholder.innerHTML = channel
-          ? `${logoMarkup(channel, "livetv-preview-logo")}<span class="livetv-preview-name">${escapeHtml(channel.name)}</span>`
+        placeholder.innerHTML = boxChannel
+          ? `${logoMarkup(boxChannel, "livetv-preview-logo")}<span class="livetv-preview-name">${escapeHtml(boxChannel.name)}</span>`
           : "";
       }
+      const watchHint = this.watchHintFor(channel);
       if (!node) return;
       if (!channel) {
         node.innerHTML = "";
@@ -386,7 +395,7 @@ export function createLiveTvScreenMethods02() {
       if (!programme) {
         node.innerHTML = `${header}<h2 class="livetv-details-title">${escapeHtml(
           LiveTvRepository.hasGuide(channel.key) ? t("livetv_no_info") : t("livetv_no_guide_for_channel")
-        )}</h2><p class="livetv-details-hint">${escapeHtml(t("livetv_hint_ok_watch"))}</p>`;
+        )}</h2><p class="livetv-details-hint">${escapeHtml(watchHint)}</p>`;
         return;
       }
       const live = programme.startMs <= now && programme.stopMs > now;
@@ -403,7 +412,7 @@ export function createLiveTvScreenMethods02() {
           ? `<span class="livetv-badge livetv-badge-catchup">${escapeHtml(t("livetv_catchup"))}</span>`
           : "";
       const hint = live
-        ? t("livetv_hint_ok_watch")
+        ? watchHint
         : catchup
           ? t("livetv_hint_ok_catchup")
           : past
@@ -493,24 +502,66 @@ export function createLiveTvScreenMethods02() {
 
     // ---- Preview ----------------------------------------------------------------------------
 
-    /** Plays the focused channel in the preview once focus has rested on it. */
+    previewActive() {
+      return Boolean(this.guide?.previewKey) && LiveTvSettings.get().showPreview;
+    },
+
+    /** What OK does on a live programme of this channel. */
+    watchHintFor(channel) {
+      if (!LiveTvSettings.get().showPreview || !channel) return t("livetv_hint_ok_watch");
+      return channel.key === this.guide?.previewKey ? t("livetv_hint_ok_fullscreen") : t("livetv_hint_ok_preview");
+    },
+
+    /**
+     * Starts the preview when the guide opens: the stream kept from full screen, or else the
+     * channel focus opens on (the last one watched). After that only OK changes it.
+     */
     schedulePreview() {
       const guide = this.guide;
       if (!guide) return;
-      clearTimeout(guide.previewTimer);
-      if (!LiveTvSettings.get().showPreview) return;
-      const key = this.focusedChannelKey();
-      if (!key || key === guide.previewKey) return;
+      if (!LiveTvSettings.get().showPreview || guide.previewKey || guide.previewTimer) return;
+      const keptKey = keptSessionChannelKey();
+      if (!keptKey && !this.focusedChannelKey()) return;
       // Back from that channel full screen: take its stream over straight away.
-      const delayMs = key === keptSessionChannelKey() ? 0 : PREVIEW_DELAY_MS;
-      guide.previewTimer = setTimeout(() => {
-        if (this.guide !== guide || !this.isMounted()) return;
-        const channel = LiveTvRepository.getChannel(this.focusedChannelKey());
-        const element = this.container?.querySelector("#livetvPreview");
-        if (!channel || !element) return;
-        guide.previewKey = channel.key;
-        void startLivePreview(channel, element);
-      }, delayMs);
+      guide.previewTimer = setTimeout(
+        () => {
+          guide.previewTimer = null;
+          if (this.guide !== guide || !this.isMounted() || guide.previewKey) return;
+          const channel = LiveTvRepository.getChannel(keptSessionChannelKey() || this.focusedChannelKey());
+          if (channel) this.previewChannel(channel);
+        },
+        keptKey ? 0 : PREVIEW_DELAY_MS
+      );
+    },
+
+    /** Plays a channel in the preview, remembering the group it was picked from for zapping. */
+    previewChannel(channel) {
+      const guide = this.guide;
+      const element = this.container?.querySelector("#livetvPreview");
+      if (!guide || !channel || !element) return false;
+      clearTimeout(guide.previewTimer);
+      guide.previewTimer = null;
+      guide.previewKey = channel.key;
+      guide.previewTabId = guide.tabs[guide.tabIndex]?.id || "";
+      const keys = this.tabChannelKeys();
+      guide.previewZapKeys = keys.includes(channel.key) ? keys.slice() : [channel.key];
+      void startLivePreview(channel, element);
+      this.updateGuide({ preview: false });
+      return true;
+    },
+
+    /** Full screen for the channel in the preview (its stream carries on). */
+    async watchPreviewFullScreen() {
+      const guide = this.guide;
+      const channel = guide && LiveTvRepository.getChannel(guide.previewKey);
+      if (!channel) return false;
+      const { now: current } = await LiveTvRepository.getNowNext(channel.key, Date.now());
+      await playLiveChannel(channel, {
+        zapKeys: guide.previewZapKeys.length ? guide.previewZapKeys : this.zapKeysForPlayer(),
+        tabId: guide.previewTabId,
+        nowTitle: current?.title || ""
+      });
+      return true;
     }
   };
 }
