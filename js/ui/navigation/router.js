@@ -31,6 +31,7 @@ import { PartyScreen } from "../screens/party/partyScreen.js";
 import { LiveTvScreen } from "../screens/livetv/liveTvScreen.js";
 import { installLivePlayerHooks } from "../screens/livetv/livePlayerHooks.js";
 import { installLiveHomeHooks } from "../screens/livetv/liveHomeHooks.js";
+import { installLiveKeepAwake } from "../../livetv/liveTvKeepAwake.js";
 import { Platform } from "../../platform/index.js";
 import { TizenCapabilities } from "../../platform/tizen/tizenCapabilities.js";
 import { markBootTiming } from "../../core/diagnostics/bootTiming.js";
@@ -91,9 +92,11 @@ export {
   getStackEntryParams,
   resolvePendingHistoryReturnParams
 };
-// Nuvio Live: zapping, channel banner and Back-to-guide for Live TV playback.
+// Nuvio Live: zapping, channel banner and Back-to-guide for Live TV playback; no screensaver while
+// a channel plays.
 installLivePlayerHooks(PlayerScreen);
 installLiveHomeHooks(HomeScreen);
+installLiveKeepAwake();
 
 const ROUTER_PERF_DEBUG = Boolean(
   globalThis.__NUVIO_DEBUG_ROUTER_PERF__ || globalThis.__NUVIO_DEBUG_HOME_PERF__

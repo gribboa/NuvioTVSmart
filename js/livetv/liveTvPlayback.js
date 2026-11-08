@@ -459,6 +459,11 @@ export function keepLiveSessionForGuide(channelKey) {
   return true;
 }
 
+/** True while the guide's preview shows a channel (or a full-screen stream waits for it). */
+export function isLivePreviewPlaying() {
+  return Boolean(preview?.playing || keptSession);
+}
+
 /** The channel whose full-screen stream is waiting for the guide's preview, or "". */
 export function keptSessionChannelKey() {
   return keptSession?.channelKey || "";

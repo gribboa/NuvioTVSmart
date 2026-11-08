@@ -137,6 +137,10 @@ services/livetv-proxy.cjs   loopback pass-through: CORS, User-Agent, streamed (n
   Back) keeps AVPlay playing through the player screen's cleanup (a `PlayerController.stop` wrapper that
   does nothing while a stream is kept), and the guide's preview adopts it straight away instead of
   opening the channel again. Not taken over within 5 s, it is stopped.
+- **No screensaver while a channel plays.** Ambient Mode (Nuvio's screensaver) counts every route but the
+  player as idle, and on Tizen hands the player route back to Samsung's screensaver. `liveTvKeepAwake.js`
+  wraps its once-a-second tick: while the guide's preview plays, or a channel (or unpaused catch-up) plays
+  full screen, it restarts the idle timer and keeps Samsung's screensaver off.
 - **The guide** is read on launch when older than the refresh interval, and on demand. Programmes are kept
   from "days back" to "days ahead" and pruned after each run. Parsing runs on the main thread in chunks
   that yield to the UI (simpler than a Web Worker in this build, and quick enough for a few hundred
@@ -163,7 +167,7 @@ Keep this list complete so rebasing onto upstream stays easy. New code lives in 
 | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `scripts/package-tizen.mjs`                                          | App name, Tizen ids and widget id; packages `services/livetv-*` (requires the `.cjs` files).                               |
 | `services/plugin-http.cjs`                                           | Loopback routes `POST /livetv-setup` (phone setup), `GET /livetv-proxy` (pass-through) and `GET /livetv-test-pattern.mp4`. |
-| `js/ui/navigation/router.js`                                         | Registers the `liveTv` route; installs the player and Home hooks.                                                          |
+| `js/ui/navigation/router.js`                                         | Registers the `liveTv` route; installs the player, Home and keep-awake hooks.                                              |
 | `js/bootstrap/renderAppShell.js`                                     | The `#liveTv` screen container.                                                                                            |
 | `js/ui/components/sidebarNavigationHelpers-01-root-sidebar-items.js` | The "Live TV" sidebar item.                                                                                                |
 | `js/ui/screens/library/libraryScreenMethods-07-activate-node.js`     | Library lists the sidebar actions it handles; adds `gotoLiveTv`.                                                           |
