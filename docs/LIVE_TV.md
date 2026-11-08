@@ -178,12 +178,25 @@ Keep this list complete so rebasing onto upstream stays easy. New code lives in 
   (`planCatchup().leadMs` in `catchupUrl.js` has it).
 - Not tried on webOS.
 
-## Rebasing onto upstream
+## Updating from upstream
 
 `main` tracks `upstream/main` (`NuvioMedia/NuvioTVSmart`); pushing to `upstream` is disabled in this clone.
+`live-tv` is published, so upstream is merged in rather than rebased (no force-push):
 
 ```bash
 git fetch upstream
 git checkout main && git merge --ff-only upstream/main && git push origin main
-git checkout live-tv && git rebase main
+git checkout live-tv && git merge main
 ```
+
+The usual conflict is the `scripts` block of `package.json`: keep upstream's lines and add `test:livetv`
+back. After merging, check that the player internals the Live TV hooks use still exist
+(`livePlayerHooks.js` and `liveTvPlayback.js` wrap `PlayerScreen` / `PlayerController` methods by name).
+
+Upstream 1.3.9 (merged 2026-11-08) changed two things Live TV adapts to:
+
+- The plugin service starts on first use instead of at boot. Live TV asks for it through
+  `resolveLiveTvServicePort()`; the test pattern, which AVPlay opens directly, starts it with
+  `warmLiveTvService()` when that channel is turned on.
+- A stuck AVPlay start is retried once through the EngineFS proxy. `canRetryTizenAvPlayThroughLocalProxy`
+  returns false for live channels, which have their own paced retries and relay.
