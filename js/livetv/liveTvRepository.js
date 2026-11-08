@@ -6,7 +6,7 @@ import { LiveTvSourceStore } from "./data/sourceStore.js";
 import { LiveTvChannelStore } from "./data/channelStore.js";
 import { LiveTvEpgStore } from "./data/epgStore.js";
 import { LiveTvSettings } from "./data/liveTvPreferences.js";
-import { liveFetchFor, loopbackServiceUrl } from "./data/liveTvHttp.js";
+import { liveFetchFor, loopbackServiceUrl, warmLiveTvService } from "./data/liveTvHttp.js";
 import { parseM3u } from "./data/m3uParser.js";
 import {
   alternateLiveFormat,
@@ -66,6 +66,7 @@ function withTestPattern(channels, groups) {
   const real = channels.filter((channel) => channel.sourceId !== TEST_PATTERN_SOURCE_ID);
   const realGroups = groups.filter((group) => group.sourceId !== TEST_PATTERN_SOURCE_ID);
   if (!LiveTvSettings.get().showTestPattern) return { channels: real, groups: realGroups };
+  warmLiveTvService();
   const group = {
     id: `${TEST_PATTERN_SOURCE_ID}:test`,
     title: "Test",

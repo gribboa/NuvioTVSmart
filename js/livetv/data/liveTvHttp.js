@@ -29,6 +29,16 @@ export async function resolveLiveTvServicePort() {
   return port;
 }
 
+/**
+ * Starts the plugin service ahead of time, for links AVPlay opens directly (the test pattern).
+ * Upstream starts the service only when something first needs it; everything else in Live TV
+ * asks for it through resolveLiveTvServicePort() when it does.
+ */
+export function warmLiveTvService() {
+  if (!Platform.isTizen() || Number(globalThis.__NUVIO_LIVETV_SETUP_PORT__ || 0)) return;
+  void resolveLiveTvServicePort().catch(() => {});
+}
+
 /** A link served by this app's plugin service, for AVPlay (which can't wait for a port lookup). */
 export function loopbackServiceUrl(path) {
   const port =

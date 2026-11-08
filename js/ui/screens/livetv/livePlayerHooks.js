@@ -424,7 +424,8 @@ export function installLivePlayerHooks(PlayerScreen) {
     onKeyDown: PlayerScreen.onKeyDown,
     consumeBackRequest: PlayerScreen.consumeBackRequest,
     showStartupError: PlayerScreen.showStartupError,
-    navigateBackToStreamScreen: PlayerScreen.navigateBackToStreamScreen
+    navigateBackToStreamScreen: PlayerScreen.navigateBackToStreamScreen,
+    canRetryTizenAvPlayThroughLocalProxy: PlayerScreen.canRetryTizenAvPlayThroughLocalProxy
   };
 
   PlayerScreen.mount = async function liveTvMount(...args) {
@@ -538,6 +539,15 @@ export function installLivePlayerHooks(PlayerScreen) {
     if (isLiveTvPlayback(this) && tryLiveFallback(this)) return undefined;
     return original.showStartupError.apply(this, args);
   };
+
+  // Upstream retries a stuck Samsung-player start once through its EngineFS proxy (for add-on
+  // servers with odd headers). Live channels have their own paced retries and relay instead.
+  if (typeof original.canRetryTizenAvPlayThroughLocalProxy === "function") {
+    PlayerScreen.canRetryTizenAvPlayThroughLocalProxy = function liveTvNoProxyRetry(...args) {
+      if (isLiveTvPlayback(this)) return false;
+      return original.canRetryTizenAvPlayThroughLocalProxy.apply(this, args);
+    };
+  }
 
   PlayerScreen.navigateBackToStreamScreen = function liveTvBackToGuide(...args) {
     const route = this.params?.returnRouteOnBack;
