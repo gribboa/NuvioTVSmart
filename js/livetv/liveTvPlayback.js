@@ -182,13 +182,13 @@ export async function startLivePreview(channel, element) {
         requestHeaders: userAgent ? { "User-Agent": userAgent } : {}
       });
       if (preview?.token !== token) return;
-      if (Platform.isTizen()) keepPreviewRect(element, token);
       // Only the engine that plays shows: hls.js draws into the video element, AVPlay into its
       // object (an empty black video element on top would hide it).
       const { video, avplay } = previewElements();
       const usingAvPlay = Boolean(PlayerController.isUsingAvPlay?.());
       if (video) video.style.visibility = usingAvPlay ? "hidden" : "";
-      if (avplay) avplay.style.visibility = usingAvPlay ? "" : "hidden";
+      if (avplay) avplay.style.visibility = "hidden";
+      if (usingAvPlay) revealWhenPlaying(element, token);
       preview.playing = true;
       return;
     } catch (_) {
@@ -197,24 +197,33 @@ export async function startLivePreview(channel, element) {
   }
 }
 
-const PREVIEW_RECT_REAPPLY_MS = [0, 400, 1200, 3000];
+// After the first frame: the rectangle once more, in case the firmware moved it while starting.
+const PREVIEW_RECT_REAPPLY_MS = [0, 1000, 3000];
+// Shown this long after AVPlay reports playback (time for the rectangle to take effect).
+const PREVIEW_REVEAL_DELAY_MS = 250;
+// Shown anyway after this long, so a stream that never reports progress still appears.
+const PREVIEW_REVEAL_FALLBACK_MS = 10000;
 // "Full screen" makes some Samsung firmware (2025 The Frame, Tizen 9) ignore the rectangle and draw
 // the whole screen, so the box only showed a part of the picture. This mode keeps to the rectangle
 // (the box is 16:9, so it fills it).
 const PREVIEW_DISPLAY_METHOD = "PLAYER_DISPLAY_MODE_AUTO_ASPECT_RATIO";
 let displayMethodBeforePreview = null;
 
+/** Gives AVPlay the preview's rectangle (stored, and applied now when AVPlay's state allows). */
 function applyPreviewRect(rect) {
   if (displayMethodBeforePreview === null) {
     displayMethodBeforePreview = PlayerController.avplayDisplayMethod || "PLAYER_DISPLAY_MODE_FULL_SCREEN";
   }
+  installRectHook();
   try {
     PlayerController.setAvPlayDisplayRect?.(toAvPlayRect(rect), PREVIEW_DISPLAY_METHOD);
   } catch (_) {
     // AVPlay isn't in a state that takes a rectangle; it's applied when the stream opens.
   }
-  // The player sets the rectangle, then the method; firmware that resets the rectangle when the
-  // method changes gets the rectangle once more, last.
+}
+
+/** setDisplayRect straight to AVPlay with the stored rectangle, when its state allows it. */
+function reassertPreviewRect() {
   const target = PlayerController.avplayDisplayRect;
   const avplay = PlayerController.isUsingAvPlay?.() ? PlayerController.getAvPlay?.() : null;
   if (!avplay || !target) return;
@@ -224,24 +233,63 @@ function applyPreviewRect(rect) {
       avplay.setDisplayRect(target.x, target.y, target.width, target.height);
     }
   } catch (_) {
-    // Older firmware: the call above already did what it can.
+    // The player's own call already did what it can.
   }
 }
 
 /**
- * Sets AVPlay's small rectangle again once the stream is playing (the way the player's own
- * post-play mini window does it): some firmware resets it when the stream starts, which shows a
- * full-screen picture through the small preview box (it looks heavily cropped).
+ * The player applies the rectangle and then the display method, at open, when prepared and while
+ * starting. On the 2025 Frame setting the method puts the picture back to full screen, so while
+ * the preview is on, every one of those calls ends with the rectangle once more.
  */
-function keepPreviewRect(element, token) {
-  PREVIEW_RECT_REAPPLY_MS.forEach((delayMs) =>
+function installRectHook() {
+  if (PlayerController.__liveTvPreviewRectHook) return;
+  const original = PlayerController.setAvPlayDisplayRect;
+  if (typeof original !== "function") return;
+  PlayerController.__liveTvPreviewRectHook = true;
+  PlayerController.setAvPlayDisplayRect = function liveTvPreviewRect(...args) {
+    const result = original.apply(this, args);
+    if (preview && displayMethodBeforePreview !== null && Platform.isTizen()) reassertPreviewRect();
+    return result;
+  };
+}
+
+/**
+ * AVPlay's object is the hole the picture shows through; it stays hidden until the stream is
+ * playing in its rectangle, so the first, full-screen frames never show in the box.
+ */
+function revealWhenPlaying(element, token) {
+  const { video } = previewElements();
+  let revealed = false;
+  const reveal = () => {
+    if (revealed) return;
+    revealed = true;
+    video?.removeEventListener("timeupdate", onProgress);
+    clearTimeout(fallbackTimer);
+    PREVIEW_RECT_REAPPLY_MS.forEach((delayMs) =>
+      setTimeout(() => {
+        if (preview?.token !== token || !element.isConnected) return;
+        const rect = element.getBoundingClientRect();
+        if (rect.width && rect.height) applyPreviewRect(rect);
+      }, delayMs)
+    );
     setTimeout(() => {
-      if (preview?.token !== token || !element.isConnected) return;
-      const rect = element.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-      applyPreviewRect(rect);
-    }, delayMs)
-  );
+      if (preview?.token !== token) return;
+      const { avplay } = previewElements();
+      if (avplay) avplay.style.visibility = "";
+    }, PREVIEW_REVEAL_DELAY_MS);
+  };
+  const onProgress = () => {
+    if (preview?.token !== token) {
+      video?.removeEventListener("timeupdate", onProgress);
+      return;
+    }
+    reveal();
+  };
+  video?.addEventListener("timeupdate", onProgress);
+  const fallbackTimer = setTimeout(() => {
+    if (preview?.token === token) reveal();
+  }, PREVIEW_REVEAL_FALLBACK_MS);
 }
 
 function restoreDisplayMethod() {

@@ -120,7 +120,10 @@ services/livetv-proxy.cjs   loopback pass-through: CORS, User-Agent, streamed (n
   rectangle. It starts after focus rests on a channel for 1 s (so scrolling past channels doesn't open a stream for each), and can be turned off in settings.
   AVPlay uses `PLAYER_DISPLAY_MODE_AUTO_ASPECT_RATIO` for the preview: with `…_FULL_SCREEN` the 2025
   Frame (Tizen 9) ignores the rectangle and draws the whole screen behind the box. The player's own
-  display mode is put back when the preview stops.
+  display mode is put back when the preview stops. That Frame also puts the picture back to full screen
+  each time the display method is set (the player does so at open, when prepared and while starting),
+  so during the preview every rectangle call ends with the rectangle again, and AVPlay's object (the hole
+  the picture shows through) stays hidden until playback is reported.
 - **The guide** is read on launch when older than the refresh interval, and on demand. Programmes are kept
   from "days back" to "days ahead" and pruned after each run. Parsing runs on the main thread in chunks
   that yield to the UI (simpler than a Web Worker in this build, and quick enough for a few hundred
