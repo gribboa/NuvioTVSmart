@@ -19,6 +19,7 @@ import {
   rulerMarks
 } from "./guideModel.js";
 import { formatWhen } from "./liveTvScreenMethods-01-sources.js";
+import { setLegacySidebarExpanded, setModernSidebarExpanded } from "../../components/sidebarNavigation.js";
 
 const VISIBLE_ROWS = 7;
 const PREVIEW_DELAY_MS = 1000;
@@ -194,6 +195,15 @@ export function createLiveTvScreenMethods02() {
     /** Moves keyboard focus off the sidebar into the guide (the guide draws its own focus). */
     focusGuide() {
       this.focusZone = "content";
+      // The guide draws its own focus, so the sidebar never sees focus leave it: fold it here.
+      if (this.layoutPrefs?.modernSidebar) {
+        if (this.sidebarExpanded) {
+          this.sidebarExpanded = false;
+          setModernSidebarExpanded(this.container, false);
+        }
+      } else {
+        setLegacySidebarExpanded(this.container, false);
+      }
       this.container?.querySelectorAll(".focusable.focused").forEach((node) => node.classList.remove("focused"));
       try {
         document.activeElement?.blur?.();
