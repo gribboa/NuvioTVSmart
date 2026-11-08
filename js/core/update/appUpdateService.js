@@ -1,4 +1,5 @@
-const LATEST_RELEASE_URL = "https://api.github.com/repos/NuvioMedia/NuvioTVSmart/releases/latest";
+// Nuvio Live: check the fork's own releases, so it never offers official Nuvio's updates.
+const LATEST_RELEASE_URL = "https://api.github.com/repos/gribboa/NuvioTVSmart/releases/latest";
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_RETRY_DELAY_MS = 2000;
 const DEFAULT_MAX_ATTEMPTS = 2;
