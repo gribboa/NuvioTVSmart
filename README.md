@@ -1,3 +1,8 @@
+> **Nuvio Live** (this fork, branch `live-tv`) adds Live TV / IPTV (Xtream and M3U, a TiviMate-style
+> guide, zapping, catch-up) to the Samsung Tizen build, and installs alongside official Nuvio. Its IPTV logic is
+> ported from [NuvioPlusIPTV](https://github.com/homelessbrian/NuvioPlusIPTV) (GPL-3.0). See
+> [docs/LIVE_TV.md](docs/LIVE_TV.md). Not affiliated with or supported by the Nuvio team.
+
 <div align="center">
 
   <img src="assets/brand/app_logo_wordmark.png" alt="Nuvio" width="300" />
