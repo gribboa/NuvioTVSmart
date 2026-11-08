@@ -296,6 +296,10 @@ async function stageTizenPluginService() {
       path.join(stagingDir, "services/custom-poster-config.cjs")
     ),
     cp(
+      path.join(rootDir, "services/livetv-setup.cjs"),
+      path.join(stagingDir, "services/livetv-setup.cjs")
+    ),
+    cp(
       path.join(rootDir, tizenPluginServiceSourceRelativePath),
       path.join(stagingDir, tizenPluginServiceSourceRelativePath)
     )
@@ -611,7 +615,11 @@ function requiredTizenServiceFiles({
         ]
       : []),
     ...(requirePluginService
-      ? [tizenPluginServiceRelativePath, tizenPluginServiceSourceRelativePath]
+      ? [
+          tizenPluginServiceRelativePath,
+          tizenPluginServiceSourceRelativePath,
+          "services/livetv-setup.cjs"
+        ]
       : [])
   ];
 }

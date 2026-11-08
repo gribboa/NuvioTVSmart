@@ -1208,6 +1208,37 @@ function createPluginHttpServer({ port = 2711, logger = console, trace } = {}) {
       });
       return;
     }
+    // Nuvio Live: phone setup for IPTV providers (see livetv-setup.cjs).
+    if (request.url === "/livetv-setup" && request.method === "POST") {
+      readBody(request, function (bodyError, payload) {
+        if (bodyError) return send(response, 400, { returnValue: false });
+        try {
+          var liveTvSetup = require("./livetv-setup.cjs");
+          if (payload.action === "start") {
+            liveTvSetup.start(payload).then(
+              function (result) {
+                send(response, 200, Object.assign({ returnValue: true }, result));
+              },
+              function () {
+                send(response, 503, { returnValue: false });
+              }
+            );
+          } else if (payload.action === "read") {
+            var setupState = liveTvSetup.read(payload.token);
+            send(
+              response,
+              setupState ? 200 : 410,
+              setupState ? Object.assign({ returnValue: true }, setupState) : { returnValue: false }
+            );
+          } else if (payload.action === "stop") {
+            send(response, 200, { returnValue: liveTvSetup.stop(payload.token) });
+          } else send(response, 400, { returnValue: false });
+        } catch (_) {
+          send(response, 503, { returnValue: false });
+        }
+      });
+      return;
+    }
     if (request.url === "/health" && request.method === "GET") {
       var memory = memoryUsage();
       send(response, 200, {

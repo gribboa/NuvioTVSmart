@@ -1,0 +1,233 @@
+/* Nuvio Live: Live TV section. */
+
+.home-shell.livetv-shell {
+  position: relative;
+}
+
+.livetv-main {
+  padding: 48px 96px 64px;
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+.livetv-title {
+  margin: 0 0 28px;
+  font-size: var(--tv-title-text);
+  font-weight: 700;
+}
+
+.livetv-notice,
+.livetv-empty {
+  max-width: 1100px;
+  margin: 0 0 24px;
+  font-size: var(--tv-body-text);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.livetv-notice {
+  color: var(--text-color);
+}
+
+.livetv-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0 0 28px;
+}
+
+.livetv-button {
+  min-height: var(--tv-button-height);
+  padding: 0 var(--tv-button-padding-x);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--text-color);
+  font: 600 var(--tv-body-text) var(--app-font-family);
+  cursor: pointer;
+  outline: none;
+  transition:
+    transform 0.12s ease,
+    background-color 0.12s ease;
+}
+
+.livetv-button-primary {
+  background: var(--focus-bg);
+}
+
+.livetv-button.focusable.focused {
+  background: var(--secondary-color);
+  color: var(--on-secondary);
+  border-color: var(--focus-color);
+  transform: scale(1.04);
+}
+
+.livetv-button-danger,
+.livetv-button-danger.focusable.focused {
+  background: var(--error-color);
+  color: #111111;
+}
+
+.livetv-source-card {
+  max-width: 1100px;
+  margin: 0 0 24px;
+  padding: 28px 32px 4px;
+  border-radius: var(--tv-card-radius);
+  background: var(--bg-elevated);
+}
+
+.livetv-source-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.livetv-source-name {
+  font-size: var(--tv-subtitle-text);
+  font-weight: 700;
+}
+
+.livetv-source-type {
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: var(--tv-caption-text);
+  font-weight: 600;
+}
+
+.livetv-source-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 12px;
+  font-size: var(--tv-body-text);
+}
+
+.livetv-source-label {
+  flex: 0 0 180px;
+  color: var(--text-tertiary);
+}
+
+.livetv-source-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.livetv-source-card .livetv-actions {
+  margin-top: 20px;
+}
+
+.livetv-phone {
+  display: flex;
+  align-items: flex-start;
+  gap: 56px;
+}
+
+.livetv-phone-qr {
+  flex: 0 0 auto;
+  width: 360px;
+  height: 360px;
+  padding: 20px;
+  border-radius: var(--tv-card-radius);
+  background: #ffffff;
+  box-sizing: content-box;
+}
+
+.livetv-phone-qr-placeholder {
+  background: var(--bg-elevated);
+}
+
+.livetv-phone-text {
+  min-width: 0;
+  max-width: 820px;
+}
+
+.livetv-phone-title {
+  margin: 0 0 20px;
+  font-size: var(--tv-subtitle-text);
+}
+
+.livetv-phone-steps {
+  margin: 0 0 24px;
+  padding-left: 1.4em;
+  font-size: var(--tv-body-text);
+  line-height: 1.5;
+}
+
+.livetv-phone-steps li {
+  margin-bottom: 10px;
+}
+
+.livetv-phone-url {
+  margin: 0 0 20px;
+  color: var(--text-secondary);
+  font-size: var(--tv-secondary-text);
+  line-height: 1.5;
+}
+
+.livetv-phone-url span {
+  color: var(--text-color);
+  overflow-wrap: anywhere;
+}
+
+.livetv-phone-status {
+  min-height: 1.5em;
+  margin: 0 0 24px;
+  font-size: var(--tv-body-text);
+  color: var(--text-secondary);
+}
+
+.livetv-phone-status-error {
+  color: var(--error-color);
+}
+
+.livetv-button-selected {
+  border-color: var(--text-secondary);
+}
+
+.livetv-manual {
+  max-width: 1100px;
+}
+
+.livetv-field {
+  display: block;
+  margin: 0 0 22px;
+}
+
+.livetv-field-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: var(--tv-secondary-text);
+}
+
+.livetv-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--tv-button-height);
+  padding: 0 22px;
+  border: 2px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  color: var(--text-color);
+  font: var(--tv-body-text) var(--app-font-family);
+  outline: none;
+}
+
+.livetv-input.focusable.focused {
+  border-color: var(--focus-color);
+  background: var(--focus-bg);
+}
+
+.livetv-field-hint {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-tertiary);
+  font-size: var(--tv-caption-text);
+  line-height: 1.4;
+}
+
+.livetv-manual-actions {
+  margin-top: 8px;
+}

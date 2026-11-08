@@ -28,6 +28,7 @@ import { FolderDetailScreen } from "../screens/collection/folderDetailScreen.js"
 import { CollectionsScreen } from "../screens/collection/collectionsScreen.js";
 import { CollectionEditorScreen } from "../screens/collection/collectionEditorScreen.js";
 import { PartyScreen } from "../screens/party/partyScreen.js";
+import { LiveTvScreen } from "../screens/livetv/liveTvScreen.js";
 import { Platform } from "../../platform/index.js";
 import { TizenCapabilities } from "../../platform/tizen/tizenCapabilities.js";
 import { RouteStateStore } from "./routeStateStore.js";
@@ -200,7 +201,8 @@ Object.assign(Router, {
     folderDetail: FolderDetailScreen,
     collections: CollectionsScreen,
     collectionEditor: CollectionEditorScreen,
-    watchParty: PartyScreen
+    watchParty: PartyScreen,
+    liveTv: LiveTvScreen
   },
   ...createRouterMethods01(),
   ...createRouterMethods02(),
