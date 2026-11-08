@@ -33,6 +33,7 @@ import { installLivePlayerHooks } from "../screens/livetv/livePlayerHooks.js";
 import { installLiveHomeHooks } from "../screens/livetv/liveHomeHooks.js";
 import { Platform } from "../../platform/index.js";
 import { TizenCapabilities } from "../../platform/tizen/tizenCapabilities.js";
+import { markBootTiming } from "../../core/diagnostics/bootTiming.js";
 import { RouteStateStore } from "./routeStateStore.js";
 import { Router } from "./routerState.js";
 import { LocalStore } from "../../core/storage/localStore.js";
@@ -79,6 +80,7 @@ export {
   ROUTER_PERF_DEBUG,
   routerPerfNow,
   logRouterPerf,
+  markBootTiming,
   NON_BACKSTACK_ROUTES,
   openPendingLaunchDeepLink,
   WEBOS_RESUME_ROUTE_KEY,
