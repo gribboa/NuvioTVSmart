@@ -186,7 +186,9 @@ export function createLiveTvScreenMethods02() {
       clearInterval(guide.tickTimer);
       guide.tickTimer = setInterval(() => this.onGuideTick(), TICK_MS);
       this.updateGuide({ preview: true });
-      if (this.focusZone !== "sidebar") this.focusGuide();
+      // A re-render replaces the sidebar nodes too: put the focus back where it was.
+      if (this.focusZone === "sidebar") void this.focusSidebarNode();
+      else this.focusGuide();
     },
 
     /** Moves keyboard focus off the sidebar into the guide (the guide draws its own focus). */

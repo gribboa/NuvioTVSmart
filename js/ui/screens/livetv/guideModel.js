@@ -100,7 +100,8 @@ export function viewForFocus(viewStartMs, focusMs, { spanMs = GUIDE_SPAN_MS, min
   let start = viewStartMs;
   const end = () => start + spanMs;
   if (focusMs < start) start = floorToSlot(focusMs);
-  else if (focusMs >= end() - SLOT_MS / 2) start = floorToSlot(focusMs) - SLOT_MS;
+  // Keep at least an hour visible after the focused time.
+  else if (focusMs >= end() - 2 * SLOT_MS) start = floorToSlot(focusMs) - SLOT_MS;
   if (cell && cell.startMs >= start && cell.startMs < end() && cell.stopMs > end()) {
     // Keep a programme that starts in view where it is; it just runs off the edge.
   }

@@ -118,6 +118,14 @@ async function showBanner(screen, channelKey = screen.params?.liveTv?.channelKey
     `;
   };
   render(null, null);
+  // The banner stands in for the player's own controls on a live channel.
+  if (screen.controlsVisible) {
+    try {
+      screen.setControlsVisible?.(false);
+    } catch (_) {
+      // Controls aren't mounted yet.
+    }
+  }
   root.classList.add("banner-visible");
   state.bannerVisible = true;
   state.bannerTimer = setTimeout(
@@ -329,6 +337,7 @@ export function installLivePlayerHooks(PlayerScreen) {
 
   PlayerScreen.mount = async function liveTvMount(...args) {
     this.liveTvOsd = null;
+    if (globalThis.__NUVIO_DEBUG_LIVETV__) globalThis.__nuvioPlayerScreen = this;
     const result = await original.mount.apply(this, args);
     if (isLiveTvPlayback(this)) {
       this.liveTvOsd = { tried: new Set(), retried: false, quickList: null, bannerVisible: false };
@@ -362,12 +371,33 @@ export function installLivePlayerHooks(PlayerScreen) {
       zapBy(this, code === KEY.CHANNEL_UP || code === KEY.PAGE_UP ? 1 : -1);
       return undefined;
     }
+    // The player's own controls and dialogs keep their keys. A dead channel's error screen
+    // doesn't: zapping and the channel list still work there (OK keeps "Go back").
+    if (!this.controlsVisible) state.controlsByUser = false;
+    if (this.controlsVisible && !state.controlsByUser) {
+      // Controls the player showed by itself (while loading) give way to the live keys.
+      try {
+        this.setControlsVisible?.(false);
+      } catch (_) {
+        // Already hidden.
+      }
+    }
     const playerUiOpen =
-      this.controlsVisible ||
-      this.hasBackDismissableOverlay?.() ||
-      this.isStartupErrorVisible?.() ||
+      (this.controlsVisible && state.controlsByUser) ||
+      this.sourcesPanelVisible ||
+      this.subtitleDialogVisible ||
+      this.audioDialogVisible ||
+      this.speedDialogVisible ||
+      this.moreActionsVisible ||
+      this.episodePanelVisible ||
+      this.subtitleTimingDialogVisible ||
+      this.subtitleDelayOverlayVisible ||
+      this.partyPanelVisible ||
       this.chaptersPanelVisible;
     if (playerUiOpen) return original.onKeyDown.call(this, event);
+    if (code === KEY.OK && this.isStartupErrorVisible?.()) {
+      return original.onKeyDown.call(this, event);
+    }
     if (code === KEY.UP || code === KEY.DOWN) {
       event?.preventDefault?.();
       zapBy(this, code === KEY.UP ? 1 : -1);
@@ -388,6 +418,7 @@ export function installLivePlayerHooks(PlayerScreen) {
     if (code === KEY.RIGHT) {
       // The player's own controls (audio, subtitles, sources...).
       hideBanner(this);
+      state.controlsByUser = true;
       return original.onKeyDown.call(this, syntheticKey(event, KEY.DOWN));
     }
     return original.onKeyDown.call(this, event);

@@ -41,6 +41,7 @@ export const LiveTvScreen = {
   async mount(params = {}) {
     this.container = document.getElementById(ROUTE);
     ScreenUtils.show(this.container);
+    if (globalThis.__NUVIO_DEBUG_LIVETV__) globalThis.__nuvioLiveTvScreen = this;
     this.mountToken = (this.mountToken || 0) + 1;
     const mountToken = this.mountToken;
     this.params = params || {};
@@ -205,7 +206,8 @@ export const LiveTvScreen = {
       this.mainNodes()[0] ||
       null;
     if (target) this.setFocusedNode(target);
-    else void this.focusSidebarNode();
+    // While channels are still loading there's nothing to focus yet; the guide takes focus.
+    else if (this.view !== VIEW.GUIDE) void this.focusSidebarNode();
   },
 
   setFocusedNode(target) {

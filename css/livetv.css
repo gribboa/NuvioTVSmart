@@ -240,6 +240,7 @@
 }
 
 #player.livetv-preview-layer #videoPlayer {
+  background: transparent;
   object-fit: contain;
   z-index: 1;
 }
