@@ -46,7 +46,7 @@ export function liveCandidatesFor(channel) {
  * Plays a channel full screen. `zapKeys` is the list CH up/down moves through (the guide's
  * current tab); Back returns to the guide on that channel.
  */
-export async function playLiveChannel(channel, { zapKeys = [], tabId = "", nowTitle = "" } = {}) {
+export async function playLiveChannel(channel, { zapKeys = [], tabId = "", nowTitle = "", returnRoute = LIVE_TV_ROUTE } = {}) {
   if (!channel) return;
   stopLivePreview();
   const candidates = liveCandidatesFor(channel);
@@ -62,8 +62,8 @@ export async function playLiveChannel(channel, { zapKeys = [], tabId = "", nowTi
     streamCandidates: candidates,
     preferredStreamId: candidates[0].id,
     liveTv: { channelKey: channel.key, zapKeys, tabId },
-    returnRouteOnBack: LIVE_TV_ROUTE,
-    returnRouteParams: { focusChannelKey: channel.key, tabId }
+    returnRouteOnBack: returnRoute,
+    returnRouteParams: returnRoute === LIVE_TV_ROUTE ? { focusChannelKey: channel.key, tabId } : {}
   });
 }
 
@@ -212,6 +212,8 @@ export function stopLivePreview({ keepLayer = false } = {}) {
   } catch (_) {
     // Nothing was playing.
   }
+  // Forget the preview's small rectangle so the next playback starts full screen.
+  PlayerController.avplayDisplayRect = null;
   if (!keepLayer) clearVideoLayer();
 }
 

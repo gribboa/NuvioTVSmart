@@ -244,3 +244,11 @@
   object-fit: contain;
   z-index: 1;
 }
+
+/* Home: channel logos in the Favourite channels row. */
+.home-poster-card[data-item-type="livetv"] .content-poster {
+  object-fit: contain;
+  padding: 18%;
+  box-sizing: border-box;
+  background: var(--card-bg);
+}

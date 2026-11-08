@@ -3438,4 +3438,6 @@
     <string name="livetv_ua_custom">Custom</string>
     <string name="livetv_ua_default">Default</string>
     <string name="livetv_home_row_title">Favourite channels</string>
+    <string name="livetv_settings_section_subtitle">IPTV providers, guide and preview</string>
+    <string name="livetv_settings_no_providers">No provider added yet</string>
 </resources>

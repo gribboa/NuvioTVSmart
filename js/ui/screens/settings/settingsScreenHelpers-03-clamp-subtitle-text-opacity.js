@@ -294,6 +294,8 @@ export const SECTION_META = [
     subtitleKey: "settings.sections.profiles.subtitle"
   },
   { id: "watchParty", labelKey: "party_title", subtitleKey: "party_settings_description" },
+  // Nuvio Live
+  { id: "liveTv", labelKey: "nav_live_tv", subtitleKey: "livetv_settings_section_subtitle" },
   {
     id: "appearance",
     labelKey: "settings.sections.appearance.label",
@@ -354,6 +356,7 @@ export const SECTION_ICONS = {
   account: "person",
   profiles: "people",
   watchParty: "groups",
+  liveTv: "live_tv",
   appearance: "palette",
   layout: "grid_view",
   contentDiscovery: "explore",

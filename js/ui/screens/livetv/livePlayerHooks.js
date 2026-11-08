@@ -278,7 +278,10 @@ async function tuneTo(screen, channelKey) {
     streamCandidates: candidates,
     preferredStreamId: candidates[0].id,
     liveTv: { ...screen.params.liveTv, channelKey: channel.key },
-    returnRouteParams: { ...(screen.params.returnRouteParams || {}), focusChannelKey: channel.key }
+    returnRouteParams:
+      screen.params.returnRouteOnBack === "liveTv"
+        ? { ...(screen.params.returnRouteParams || {}), focusChannelKey: channel.key }
+        : screen.params.returnRouteParams || {}
   };
   screen.streamCandidates =
     typeof screen.normalizeStreamCandidates === "function"

@@ -293,6 +293,8 @@ export const LiveTvScreen = {
       this.openGuide();
       return true;
     }
+    // Opened from Settings: Back goes back there.
+    if (this.view === VIEW.SOURCES && this.params?.view === VIEW.SOURCES) return false;
     if (this.focusZone !== "sidebar") {
       void this.focusSidebarNode();
       return true;
