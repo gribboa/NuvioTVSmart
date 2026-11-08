@@ -4,7 +4,7 @@
 import { LiveTvRepository } from "../../../livetv/liveTvRepository.js";
 import { LiveTvProfileState, LiveTvSettings } from "../../../livetv/data/liveTvPreferences.js";
 import { canPlayCatchup } from "../../../livetv/data/catchupUrl.js";
-import { startLivePreview, stopLivePreview } from "../../../livetv/liveTvPlayback.js";
+import { keptSessionChannelKey, startLivePreview, stopLivePreview } from "../../../livetv/liveTvPlayback.js";
 import { escapeHtml, guideProblem, t } from "./liveTvScreenShared.js";
 import {
   GUIDE_SPAN_MS,
@@ -491,6 +491,8 @@ export function createLiveTvScreenMethods02() {
       if (!LiveTvSettings.get().showPreview) return;
       const key = this.focusedChannelKey();
       if (!key || key === guide.previewKey) return;
+      // Back from that channel full screen: take its stream over straight away.
+      const delayMs = key === keptSessionChannelKey() ? 0 : PREVIEW_DELAY_MS;
       guide.previewTimer = setTimeout(() => {
         if (this.guide !== guide || !this.isMounted()) return;
         const channel = LiveTvRepository.getChannel(this.focusedChannelKey());
@@ -498,7 +500,7 @@ export function createLiveTvScreenMethods02() {
         if (!channel || !element) return;
         guide.previewKey = channel.key;
         void startLivePreview(channel, element);
-      }, PREVIEW_DELAY_MS);
+      }, delayMs);
     }
   };
 }

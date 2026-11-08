@@ -128,6 +128,10 @@ services/livetv-proxy.cjs   loopback pass-through: CORS, User-Agent, streamed (n
   stopping AVPlay, and a one-off wrapper on `PlayerController.play` lets the player screen adopt the
   running session (full-screen rectangle, the usual "playing" events) when it asks for the same link.
   Anything else (another link, AVPlay not playing, not Tizen) plays normally.
+- **Back to the guide** works the same way in reverse: `keepLiveSessionForGuide` (from the player hook's
+  Back) keeps AVPlay playing through the player screen's cleanup (a `PlayerController.stop` wrapper that
+  does nothing while a stream is kept), and the guide's preview adopts it straight away instead of
+  opening the channel again. Not taken over within 5 s, it is stopped.
 - **The guide** is read on launch when older than the refresh interval, and on demand. Programmes are kept
   from "days back" to "days ahead" and pruned after each run. Parsing runs on the main thread in chunks
   that yield to the UI (simpler than a Web Worker in this build, and quick enough for a few hundred

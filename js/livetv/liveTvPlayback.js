@@ -7,7 +7,7 @@ import { Router } from "../ui/navigation/routerState.js";
 import { PlayerController } from "../core/player/playerController.js";
 import { Platform } from "../platform/index.js";
 import { LiveTvRepository } from "./liveTvRepository.js";
-import { LiveTvProfileState } from "./data/liveTvPreferences.js";
+import { LiveTvProfileState, LiveTvSettings } from "./data/liveTvPreferences.js";
 import { buildCatchupUrls } from "./data/catchupUrl.js";
 
 export const LIVE_TV_ROUTE = "liveTv";
@@ -258,6 +258,11 @@ export async function startLivePreview(channel, element) {
   if (!rect.width || !rect.height) return;
   const token = {};
   if (preview?.channelKey === channel.key) return;
+  if (keptSession) {
+    if (keptSession.channelKey === channel.key && adoptKeptSession(channel, element)) return;
+    // Another channel: the playback below replaces the kept stream.
+    dropKeptSession();
+  }
   stopLivePreview({ keepLayer: true });
   preview = { channelKey: channel.key, token };
   const candidates = liveCandidatesFor(channel);
@@ -416,4 +421,101 @@ export function stopLivePreview({ keepLayer = false } = {}) {
 
 export function livePreviewChannelKey() {
   return preview?.channelKey || "";
+}
+
+// ---- Full screen -> preview, same stream -------------------------------------------------------
+
+// The stream a channel was playing full screen when Back went to the guide: { url, channelKey,
+// timer }. The guide's preview takes it over instead of opening the channel again.
+let keptSession = null;
+const KEPT_SESSION_TIMEOUT_MS = 5000;
+
+function avPlayState() {
+  try {
+    return String(PlayerController.getAvPlay?.()?.getState?.() || "").toUpperCase();
+  } catch (_) {
+    return "";
+  }
+}
+
+/**
+ * Called on Back from a live channel to the guide: keeps AVPlay playing (the player screen's
+ * cleanup would stop it) for the guide's preview to take over. Returns false when it can't (not
+ * Tizen, preview off, AVPlay not playing); the caller then stops playback as usual.
+ */
+export function keepLiveSessionForGuide(channelKey) {
+  if (!Platform.isTizen() || !channelKey || !LiveTvSettings.get().showPreview) return false;
+  if (!PlayerController.isUsingAvPlay?.() || !ADOPTABLE_STATES.includes(avPlayState())) return false;
+  const url = String(PlayerController.currentPlaybackUrl || "").trim();
+  if (!url) return false;
+  installStopHook();
+  clearTimeout(keptSession?.timer);
+  keptSession = {
+    url,
+    channelKey,
+    // Nobody took it over (Back went somewhere else, or the guide didn't preview it): stop it.
+    timer: setTimeout(() => dropKeptSession({ stop: true }), KEPT_SESSION_TIMEOUT_MS)
+  };
+  return true;
+}
+
+/** The channel whose full-screen stream is waiting for the guide's preview, or "". */
+export function keptSessionChannelKey() {
+  return keptSession?.channelKey || "";
+}
+
+function dropKeptSession({ stop = false } = {}) {
+  const kept = keptSession;
+  if (!kept) return;
+  clearTimeout(kept.timer);
+  keptSession = null;
+  const stillOurs =
+    !preview &&
+    String(PlayerController.currentPlaybackUrl || "").trim() === kept.url &&
+    (!Router.getCurrent || Router.getCurrent() !== "player");
+  if (stop && stillOurs) {
+    try {
+      PlayerController.stop();
+    } catch (_) {
+      // Already stopped.
+    }
+  }
+}
+
+/** Shows the kept full-screen stream in the preview box (see keepLiveSessionForGuide). */
+function adoptKeptSession(channel, element) {
+  const kept = keptSession;
+  const rect = element.getBoundingClientRect();
+  const usable =
+    kept &&
+    rect.width &&
+    rect.height &&
+    PlayerController.isUsingAvPlay?.() &&
+    String(PlayerController.currentPlaybackUrl || "").trim() === kept.url &&
+    ADOPTABLE_STATES.includes(avPlayState());
+  if (!usable) return false;
+  clearTimeout(kept.timer);
+  keptSession = null;
+  const token = {};
+  preview = { channelKey: channel.key, token, playing: true };
+  const { video, avplay } = previewElements();
+  // Hidden until AVPlay has moved the picture into the box (see revealWhenPlaying).
+  if (avplay) avplay.style.visibility = "hidden";
+  placeVideoLayer(rect);
+  if (video) video.style.visibility = "hidden";
+  applyPreviewRect(rect);
+  revealWhenPlaying(element, token);
+  return true;
+}
+
+/** While a full-screen stream waits for the guide, the player screen's cleanup must not stop it. */
+function installStopHook() {
+  if (PlayerController.__liveTvKeepSessionHook) return;
+  const original = PlayerController.stop;
+  if (typeof original !== "function") return;
+  PlayerController.__liveTvKeepSessionHook = true;
+  PlayerController.stop = function liveTvStop(...args) {
+    if (keptSession) return undefined;
+    return original.apply(this, args);
+  };
 }

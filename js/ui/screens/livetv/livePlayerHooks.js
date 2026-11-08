@@ -14,7 +14,7 @@ import { Router } from "../../navigation/routerState.js";
 import { PlayerController } from "../../../core/player/playerController.js";
 import { LiveTvRepository } from "../../../livetv/liveTvRepository.js";
 import { LiveTvProfileState, LiveTvSettings } from "../../../livetv/data/liveTvPreferences.js";
-import { liveCandidatesFor } from "../../../livetv/liveTvPlayback.js";
+import { keepLiveSessionForGuide, liveCandidatesFor } from "../../../livetv/liveTvPlayback.js";
 import { proxiedUrl, resolveLiveTvServicePort } from "../../../livetv/data/liveTvHttp.js";
 import { Platform } from "../../../platform/index.js";
 import { escapeHtml, t } from "./liveTvScreenShared.js";
@@ -549,10 +549,17 @@ export function installLivePlayerHooks(PlayerScreen) {
     } catch (_) {
       // Nothing to stop for a channel.
     }
-    try {
-      PlayerController.stop();
-    } catch (_) {
-      // Route cleanup stops it again.
+    // Back to the guide from a live channel: the guide's preview carries on with the same stream.
+    const keep =
+      route === "liveTv" &&
+      isLiveTvChannel(this) &&
+      keepLiveSessionForGuide(this.params.liveTv.channelKey);
+    if (!keep) {
+      try {
+        PlayerController.stop();
+      } catch (_) {
+        // Route cleanup stops it again.
+      }
     }
     const params = this.params?.returnRouteParams || {};
     if (Router.popToExistingRoute?.(route, params, {})) return "history";
