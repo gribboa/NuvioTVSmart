@@ -300,6 +300,10 @@ async function stageTizenPluginService() {
       path.join(stagingDir, "services/livetv-setup.cjs")
     ),
     cp(
+      path.join(rootDir, "services/livetv-proxy.cjs"),
+      path.join(stagingDir, "services/livetv-proxy.cjs")
+    ),
+    cp(
       path.join(rootDir, tizenPluginServiceSourceRelativePath),
       path.join(stagingDir, tizenPluginServiceSourceRelativePath)
     )
@@ -618,7 +622,8 @@ function requiredTizenServiceFiles({
       ? [
           tizenPluginServiceRelativePath,
           tizenPluginServiceSourceRelativePath,
-          "services/livetv-setup.cjs"
+          "services/livetv-setup.cjs",
+          "services/livetv-proxy.cjs"
         ]
       : [])
   ];

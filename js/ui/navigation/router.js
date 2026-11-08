@@ -29,6 +29,7 @@ import { CollectionsScreen } from "../screens/collection/collectionsScreen.js";
 import { CollectionEditorScreen } from "../screens/collection/collectionEditorScreen.js";
 import { PartyScreen } from "../screens/party/partyScreen.js";
 import { LiveTvScreen } from "../screens/livetv/liveTvScreen.js";
+import { installLivePlayerHooks } from "../screens/livetv/livePlayerHooks.js";
 import { Platform } from "../../platform/index.js";
 import { TizenCapabilities } from "../../platform/tizen/tizenCapabilities.js";
 import { RouteStateStore } from "./routeStateStore.js";
@@ -87,6 +88,9 @@ export {
   getStackEntryParams,
   resolvePendingHistoryReturnParams
 };
+// Nuvio Live: zapping, channel banner and Back-to-guide for Live TV playback.
+installLivePlayerHooks(PlayerScreen);
+
 const ROUTER_PERF_DEBUG = Boolean(
   globalThis.__NUVIO_DEBUG_ROUTER_PERF__ || globalThis.__NUVIO_DEBUG_HOME_PERF__
 );

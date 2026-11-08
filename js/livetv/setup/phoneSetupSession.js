@@ -2,7 +2,7 @@
 // the setup page on the home network (services/livetv-setup.cjs), then polls it for what the
 // phone sent. Same flow as js/ui/screens/settings/customPosterPhoneConfig.js.
 import { Platform } from "../../platform/index.js";
-import { PluginServiceClient } from "../../platform/pluginServiceClient.js";
+import { LiveTvServiceError, resolveLiveTvServicePort } from "../data/liveTvHttp.js";
 import { I18n } from "../../i18n/index.js";
 
 const POLL_MS = 1000;
@@ -67,21 +67,6 @@ function isLanAddress(address) {
   return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(address || "") && !/^127\./.test(address);
 }
 
-async function resolveServicePort() {
-  // Desktop development only: point at a plugin-http.cjs started by hand (see docs/LIVE_TV.md).
-  const devPort = Number(globalThis.__NUVIO_LIVETV_SETUP_PORT__ || 0);
-  if (devPort) return devPort;
-  let health;
-  try {
-    health = await PluginServiceClient.ensureReady();
-  } catch (_) {
-    throw new LiveTvPhoneSetupError("service");
-  }
-  const port = Number(health?.port || (Platform.isWebOS() ? 2721 : 2711));
-  if (![2711, 2721].includes(port)) throw new LiveTvPhoneSetupError("service");
-  return port;
-}
-
 function fallbackTvAddress() {
   if (!Platform.isTizen()) return "";
   try {
@@ -98,7 +83,12 @@ function fallbackTvAddress() {
  */
 export async function openLiveTvPhoneSetup({ onSubmission, onClosed } = {}) {
   const token = createSetupToken();
-  const port = await resolveServicePort();
+  let port;
+  try {
+    port = await resolveLiveTvServicePort();
+  } catch (error) {
+    throw new LiveTvPhoneSetupError(error instanceof LiveTvServiceError ? error.code : "service");
+  }
   const control = async (action, extra = {}) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), CONTROL_TIMEOUT_MS);

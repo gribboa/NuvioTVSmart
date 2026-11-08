@@ -231,3 +231,15 @@
 .livetv-manual-actions {
   margin-top: 8px;
 }
+
+/* Guide preview: the player screen becomes a transparent layer over the guide, showing only the
+   video in the preview rectangle (see js/livetv/liveTvPlayback.js). */
+#player.livetv-preview-layer {
+  background: transparent;
+  pointer-events: none;
+}
+
+#player.livetv-preview-layer #videoPlayer {
+  object-fit: contain;
+  z-index: 1;
+}

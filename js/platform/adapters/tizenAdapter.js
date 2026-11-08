@@ -61,7 +61,10 @@ export const tizenAdapter = {
       "MediaFastForward",
       "MediaRewind",
       "MediaTrackPrevious",
-      "MediaTrackNext"
+      "MediaTrackNext",
+      // Nuvio Live: CH +/- zap channels and page the guide.
+      "ChannelUp",
+      "ChannelDown"
     ];
 
     if (typeof tvInputDevice.registerKeyBatch === "function") {

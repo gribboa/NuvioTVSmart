@@ -1208,6 +1208,15 @@ function createPluginHttpServer({ port = 2711, logger = console, trace } = {}) {
       });
       return;
     }
+    // Nuvio Live: pass-through for IPTV requests (see livetv-proxy.cjs).
+    if (String(request.url || "").indexOf("/livetv-proxy?") === 0 && request.method === "GET") {
+      try {
+        require("./livetv-proxy.cjs").handle(request, response);
+      } catch (_) {
+        send(response, 503, { returnValue: false });
+      }
+      return;
+    }
     // Nuvio Live: phone setup for IPTV providers (see livetv-setup.cjs).
     if (request.url === "/livetv-setup" && request.method === "POST") {
       readBody(request, function (bodyError, payload) {
