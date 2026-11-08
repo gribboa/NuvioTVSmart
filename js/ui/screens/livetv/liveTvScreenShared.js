@@ -36,3 +36,22 @@ export function scrollIntoNearestView(node) {
     node?.scrollIntoView?.();
   }
 }
+
+/** Why the guide has nothing to show, or "" when it's fine (shown in the guide and settings). */
+export function guideProblem(guide) {
+  if (!guide || guide.loading) return "";
+  if (guide.error) {
+    if (guide.error === "http" && guide.errorStatus) {
+      return t("livetv_guide_failed_http", { status: guide.errorStatus });
+    }
+    if (guide.error === "network") return t("livetv_guide_failed_network");
+    if (guide.error === "parse") return t("livetv_guide_failed_parse");
+    return t("livetv_guide_failed");
+  }
+  if (guide.updatedAt && !guide.channels) {
+    return guide.guideChannels
+      ? t("livetv_guide_no_matches", { count: Number(guide.guideChannels).toLocaleString() })
+      : t("livetv_guide_empty");
+  }
+  return "";
+}

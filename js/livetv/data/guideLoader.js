@@ -76,7 +76,7 @@ async function* readBody(response) {
 /**
  * Loads one guide. `matchIndex` comes from buildChannelMatchIndex(channels); `onMatch(guideId,
  * matches)` is called for each guide channel that belongs to playlist channels. Resolves to
- * { channels, programmes } counts. Throws with code "http" / "network" / "parse".
+ * { channels, programmes, guideChannels } counts (guideChannels: every channel the guide lists). Throws with code "http" / "network" / "parse".
  */
 export async function loadGuide({
   url,
@@ -94,6 +94,7 @@ export async function loadGuide({
   if (!response.ok || upstreamStatus >= 400) {
     const error = new Error(`http ${upstreamStatus}`);
     error.code = "http";
+    error.status = upstreamStatus;
     throw error;
   }
 
@@ -163,5 +164,5 @@ export async function loadGuide({
     error.code = "parse";
     throw error;
   }
-  return { channels: matchedChannels, programmes: stored };
+  return { channels: matchedChannels, programmes: stored, guideChannels: seen.size };
 }

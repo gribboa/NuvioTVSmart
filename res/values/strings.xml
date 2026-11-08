@@ -3387,6 +3387,11 @@
     <string name="livetv_favourite_added">%1$s added to favourites</string>
     <string name="livetv_favourite_removed">%1$s removed from favourites</string>
     <string name="livetv_guide_failed">The guide couldn\'t be loaded.</string>
+    <string name="livetv_guide_failed_http">The guide couldn\'t be loaded: the server answered with error %1$s.</string>
+    <string name="livetv_guide_failed_network">The guide couldn\'t be loaded: the TV couldn\'t reach the server.</string>
+    <string name="livetv_guide_failed_parse">The guide couldn\'t be loaded: the link didn\'t return an XMLTV guide.</string>
+    <string name="livetv_guide_no_matches">The guide lists %1$s channels, but none of them match your playlist\'s channels.</string>
+    <string name="livetv_guide_empty">The guide had no channels in it.</string>
     <string name="livetv_guide_loading">Updating the guide…</string>
     <string name="livetv_guide_loading_count">Updating the guide… %1$s programmes</string>
     <string name="livetv_guide_status">Guide updated %1$s: %2$s channels, %3$s programmes</string>

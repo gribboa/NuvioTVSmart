@@ -5,7 +5,7 @@ import { LiveTvRepository } from "../../../livetv/liveTvRepository.js";
 import { LiveTvProfileState, LiveTvSettings } from "../../../livetv/data/liveTvPreferences.js";
 import { canPlayCatchup } from "../../../livetv/data/catchupUrl.js";
 import { startLivePreview, stopLivePreview } from "../../../livetv/liveTvPlayback.js";
-import { escapeHtml, t } from "./liveTvScreenShared.js";
+import { escapeHtml, guideProblem, t } from "./liveTvScreenShared.js";
 import {
   GUIDE_SPAN_MS,
   MINUTE_MS,
@@ -21,7 +21,7 @@ import {
 import { formatWhen } from "./liveTvScreenMethods-01-sources.js";
 
 const VISIBLE_ROWS = 7;
-const PREVIEW_DELAY_MS = 600;
+const PREVIEW_DELAY_MS = 1000;
 const TICK_MS = 30 * 1000;
 const READ_BEFORE_MS = 3 * 60 * MINUTE_MS;
 const READ_AFTER_MS = 6 * 60 * MINUTE_MS;
@@ -430,8 +430,8 @@ export function createLiveTvScreenMethods02() {
       } else if (guide.loading) {
         const count = guide.progress?.programmes || 0;
         node.textContent = count ? t("livetv_guide_loading_count", { count: count.toLocaleString() }) : t("livetv_guide_loading");
-      } else if (guide.error && !guide.updatedAt) {
-        node.textContent = t("livetv_guide_failed");
+      } else if (guideProblem(guide) && (!guide.updatedAt || !guide.channels)) {
+        node.textContent = guideProblem(guide);
       } else if (guide.updatedAt) {
         node.textContent = t("livetv_guide_updated", { when: formatWhen(guide.updatedAt) });
       } else {

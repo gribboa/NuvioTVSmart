@@ -187,6 +187,7 @@ export async function startLivePreview(channel, element) {
         requestHeaders: userAgent ? { "User-Agent": userAgent } : {}
       });
       if (preview?.token !== token) return;
+      if (Platform.isTizen()) keepPreviewRect(element, token);
       // Only the engine that plays shows: hls.js draws into the video element, AVPlay into its
       // object (an empty black video element on top would hide it).
       const { video, avplay } = previewElements();
@@ -195,10 +196,32 @@ export async function startLivePreview(channel, element) {
       if (avplay) avplay.style.visibility = usingAvPlay ? "" : "hidden";
       preview.playing = true;
       return;
-    } catch (error) {
+    } catch (_) {
       console.warn("Live TV preview failed", candidate.mimeType || "stream");
     }
   }
+}
+
+const PREVIEW_RECT_REAPPLY_MS = [0, 400, 1200, 3000];
+
+/**
+ * Sets AVPlay's small rectangle again once the stream is playing (the way the player's own
+ * post-play mini window does it): some firmware resets it when the stream starts, which shows a
+ * full-screen picture through the small preview box (it looks heavily cropped).
+ */
+function keepPreviewRect(element, token) {
+  PREVIEW_RECT_REAPPLY_MS.forEach((delayMs) =>
+    setTimeout(() => {
+      if (preview?.token !== token || !element.isConnected) return;
+      const rect = element.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      try {
+        PlayerController.setAvPlayDisplayRect?.(toAvPlayRect(rect), "PLAYER_DISPLAY_MODE_FULL_SCREEN");
+      } catch (_) {
+        // AVPlay isn't in a state that takes a rectangle; the next try may be.
+      }
+    }, delayMs)
+  );
 }
 
 export function stopLivePreview({ keepLayer = false } = {}) {

@@ -5,7 +5,7 @@
 import { LiveTvRepository } from "../../../livetv/liveTvRepository.js";
 import { LiveTvSettings } from "../../../livetv/data/liveTvPreferences.js";
 import { LiveTvSourceStore } from "../../../livetv/data/sourceStore.js";
-import { escapeHtml, t } from "./liveTvScreenShared.js";
+import { escapeHtml, guideProblem, t } from "./liveTvScreenShared.js";
 
 // User-Agent presets for providers that block unknown players (typing one on a TV is no fun).
 export const USER_AGENT_PRESETS = Object.freeze([
@@ -98,13 +98,15 @@ export function createLiveTvScreenMethods04() {
         const count = guide.progress?.programmes || 0;
         node.textContent = count ? t("livetv_guide_loading_count", { count: count.toLocaleString() }) : t("livetv_guide_loading");
       } else if (guide.updatedAt) {
-        node.textContent = t("livetv_guide_status", {
+        const problem = guideProblem(guide);
+        const status = t("livetv_guide_status", {
           when: new Date(guide.updatedAt).toLocaleString(),
           channels: guide.channels || 0,
           programmes: (guide.programmes || 0).toLocaleString()
         });
+        node.textContent = problem ? `${status}. ${problem}` : status;
       } else {
-        node.textContent = guide.error ? t("livetv_guide_failed") : "";
+        node.textContent = guideProblem(guide);
       }
     },
 

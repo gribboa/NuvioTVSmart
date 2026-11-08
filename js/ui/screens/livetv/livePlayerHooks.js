@@ -5,7 +5,8 @@
 //  - An info banner (logo, now/next, progress) on start and on every zap; OK shows it.
 //  - A quick channel list on Left (or OK while the banner is up) over the playing video.
 //  - Right opens the player's own controls (audio, subtitles, ...).
-//  - A failing stream is tried once more, then in the other format, before the error shows.
+//  - A failing stream is tried again after a pause, then in the other format, then through the
+//    app's own pass-through, before the error shows.
 //  - Back returns to the guide on the channel being watched.
 // Behaviour follows NuvioPlusIPTV (GPL-3.0): ui/LiveTvPlayerPanel.kt, ui/LiveTvOverlayMode.kt,
 // player/LiveTvPlaybackController.kt.
@@ -14,6 +15,8 @@ import { PlayerController } from "../../../core/player/playerController.js";
 import { LiveTvRepository } from "../../../livetv/liveTvRepository.js";
 import { LiveTvProfileState, LiveTvSettings } from "../../../livetv/data/liveTvPreferences.js";
 import { liveCandidatesFor } from "../../../livetv/liveTvPlayback.js";
+import { proxiedUrl, resolveLiveTvServicePort } from "../../../livetv/data/liveTvHttp.js";
+import { Platform } from "../../../platform/index.js";
 import { escapeHtml, t } from "./liveTvScreenShared.js";
 import { defaultFormatTime, moveIndex, progressOf } from "./guideModel.js";
 
@@ -266,8 +269,7 @@ async function tuneTo(screen, channelKey) {
   const candidates = liveCandidatesFor(channel);
   if (!candidates.length) return;
   const state = screen.liveTvOsd;
-  state.tried = new Set();
-  state.retried = false;
+  resetFallback(state);
   state.bannerKey = channel.key;
   const { now } = await LiveTvRepository.getNowNext(channel.key);
   screen.params = {
@@ -304,24 +306,111 @@ async function tuneTo(screen, channelKey) {
   });
 }
 
-/** Before the player gives up: retry once, then the other stream format. */
+const RETRY_DELAYS_MS = [1500, 3500];
+
+function isAdaptiveCandidate(candidate) {
+  return (
+    /mpegurl|dash/i.test(String(candidate?.mimeType || "")) ||
+    /\.(m3u8|mpd)(\?|$)/i.test(candidate?.url || "")
+  );
+}
+
+/** Plays `candidate` after `delayMs`, unless the channel changed or the player closed meanwhile. */
+function playLater(screen, candidate, delayMs) {
+  const state = screen.liveTvOsd;
+  const generation = state.generation;
+  const mountToken = screen.playerMountToken;
+  screen.loadingVisible = true;
+  try {
+    screen.updateLoadingVisibility?.();
+  } catch (_) {
+    // The loading overlay isn't mounted.
+  }
+  clearTimeout(state.retryTimer);
+  state.retryTimer = setTimeout(() => {
+    if (screen.liveTvOsd !== state || state.generation !== generation) return;
+    if (!screen.isActiveMountToken?.(mountToken)) return;
+    void screen.playStreamCandidate(candidate, { mountToken });
+  }, delayMs);
+}
+
+/** The same link through this app's own loopback pass-through (progressive streams only). */
+function relayCandidateFor(screen, candidate) {
+  const state = screen.liveTvOsd;
+  if (
+    !state.relayPort ||
+    !candidate?.url ||
+    candidate.liveTvRelay ||
+    isAdaptiveCandidate(candidate)
+  ) {
+    return null;
+  }
+  const userAgent = candidate.behaviorHints?.proxyHeaders?.request?.["User-Agent"] || "";
+  const relay = {
+    ...candidate,
+    id: `${candidate.id || "live"}:relay`,
+    url: proxiedUrl(state.relayPort, candidate.url, userAgent),
+    behaviorHints: {},
+    liveTvRelay: true
+  };
+  const list = [...(screen.streamCandidates || []), relay];
+  screen.streamCandidates =
+    typeof screen.normalizeStreamCandidates === "function"
+      ? screen.normalizeStreamCandidates(list)
+      : list;
+  return screen.streamCandidates.find((entry) => entry.id === relay.id) || relay;
+}
+
+/**
+ * Before the player gives up on a channel:
+ *  1. the first link again, twice, after a pause (a server or restreamer such as Dispatcharr can
+ *     still be closing the guide preview's connection when the player opens a new one);
+ *  2. the other stream format (Xtream .ts <-> .m3u8);
+ *  3. a progressive (.ts) link through this app's loopback pass-through (a different HTTP stack
+ *     from AVPlay's);
+ * and only then the error.
+ */
 function tryLiveFallback(screen) {
   const state = screen.liveTvOsd;
   if (!state) return false;
   const current = screen.getCurrentStreamCandidate?.() || screen.streamCandidates?.[0];
   const currentUrl = current?.url || screen.activePlaybackUrl || "";
-  if (!state.retried && currentUrl) {
-    state.retried = true;
-    state.tried.add(currentUrl);
-    void screen.playStreamCandidate(current, { mountToken: screen.playerMountToken });
+  if (!currentUrl) return false;
+  if (!state.firstUrl) state.firstUrl = currentUrl;
+  state.tried.add(currentUrl);
+  if (currentUrl === state.firstUrl && state.retries < RETRY_DELAYS_MS.length) {
+    playLater(screen, current, RETRY_DELAYS_MS[state.retries]);
+    state.retries += 1;
     return true;
   }
-  if (currentUrl) state.tried.add(currentUrl);
   const next = (screen.streamCandidates || []).find((candidate) => !state.tried.has(candidate.url));
-  if (!next) return false;
-  state.tried.add(next.url);
-  void screen.playStreamCandidate(next, { mountToken: screen.playerMountToken });
-  return true;
+  if (next) {
+    state.tried.add(next.url);
+    playLater(screen, next, 0);
+    return true;
+  }
+  if (!state.relayTried) {
+    state.relayTried = true;
+    const original =
+      (screen.streamCandidates || []).find((candidate) => candidate.url === state.firstUrl) ||
+      current;
+    const relay = relayCandidateFor(screen, original);
+    if (relay) {
+      state.tried.add(relay.url);
+      playLater(screen, relay, 0);
+      return true;
+    }
+  }
+  return false;
+}
+
+function resetFallback(state) {
+  clearTimeout(state.retryTimer);
+  state.generation = (state.generation || 0) + 1;
+  state.tried = new Set();
+  state.retries = 0;
+  state.firstUrl = "";
+  state.relayTried = false;
 }
 
 // ---- Install ------------------------------------------------------------------------------
@@ -343,7 +432,16 @@ export function installLivePlayerHooks(PlayerScreen) {
     if (globalThis.__NUVIO_DEBUG_LIVETV__) globalThis.__nuvioPlayerScreen = this;
     const result = await original.mount.apply(this, args);
     if (isLiveTvPlayback(this)) {
-      this.liveTvOsd = { tried: new Set(), retried: false, quickList: null, bannerVisible: false };
+      this.liveTvOsd = { quickList: null, bannerVisible: false, relayPort: 0 };
+      resetFallback(this.liveTvOsd);
+      const state = this.liveTvOsd;
+      if (Platform.isTizen()) {
+        resolveLiveTvServicePort()
+          .then((port) => {
+            state.relayPort = port;
+          })
+          .catch(() => {});
+      }
       if (isLiveTvChannel(this)) void showBanner(this);
     }
     return result;
@@ -354,6 +452,7 @@ export function installLivePlayerHooks(PlayerScreen) {
     if (state) {
       clearTimeout(state.bannerTimer);
       clearTimeout(state.zapTimer);
+      clearTimeout(state.retryTimer);
       this.container?.querySelector("#livetvOsd")?.remove();
       this.liveTvOsd = null;
     }

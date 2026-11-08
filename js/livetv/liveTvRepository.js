@@ -269,6 +269,7 @@ export const LiveTvRepository = {
       const targets = this.guideTargets();
       const errors = [];
       let programmes = 0;
+      let guideChannels = 0;
       state.guide = {
         ...state.guide,
         loading: true,
@@ -294,9 +295,10 @@ export const LiveTvRepository = {
             }
           });
           programmes += result.programmes;
+          guideChannels += result.guideChannels || 0;
         } catch (error) {
-          console.warn("Live TV guide failed", errorCode(error));
-          errors.push(errorCode(error));
+          console.warn("Live TV guide failed", errorCode(error), error?.status || "");
+          errors.push({ code: errorCode(error), status: Number(error?.status || 0) });
         }
       }
       const guideMap = {};
@@ -312,15 +314,19 @@ export const LiveTvRepository = {
         loading: false,
         updatedAt:
           errors.length === targets.length && targets.length ? state.guide.updatedAt : Date.now(),
-        error: errors[0] || "",
+        error: errors[0]?.code || "",
+        errorStatus: errors[0]?.status || 0,
         progress: null,
         channels: Object.keys(state.guideMap).length,
+        guideChannels,
         programmes
       };
       await LiveTvEpgStore.setMeta(GUIDE_STATUS_KEY, {
         updatedAt: state.guide.updatedAt,
         error: state.guide.error,
+        errorStatus: state.guide.errorStatus,
         channels: state.guide.channels,
+        guideChannels,
         programmes
       });
       emit("guide");
