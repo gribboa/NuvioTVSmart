@@ -173,15 +173,9 @@ export async function startLivePreview(channel, element) {
     if (preview?.token !== token) return;
     try {
       const userAgent = candidate.behaviorHints?.proxyHeaders?.request?.["User-Agent"];
-      if (Platform.isTizen()) {
-        // Stored and applied when AVPlay opens the stream (it ignores changes while playing).
-        // PlayerScreen sets full screen again when it mounts.
-        try {
-          PlayerController.setAvPlayDisplayRect?.(toAvPlayRect(rect), "PLAYER_DISPLAY_MODE_FULL_SCREEN");
-        } catch (_) {
-          // HTML engines are sized through the video element instead.
-        }
-      }
+      // Stored and applied when AVPlay opens the stream; HTML engines are sized through the
+      // video element instead.
+      if (Platform.isTizen()) applyPreviewRect(rect);
       await PlayerController.play(candidate.url, {
         itemType: "channel",
         mediaSourceType: candidate.mimeType || null,
@@ -204,6 +198,35 @@ export async function startLivePreview(channel, element) {
 }
 
 const PREVIEW_RECT_REAPPLY_MS = [0, 400, 1200, 3000];
+// "Full screen" makes some Samsung firmware (2025 The Frame, Tizen 9) ignore the rectangle and draw
+// the whole screen, so the box only showed a part of the picture. This mode keeps to the rectangle
+// (the box is 16:9, so it fills it).
+const PREVIEW_DISPLAY_METHOD = "PLAYER_DISPLAY_MODE_AUTO_ASPECT_RATIO";
+let displayMethodBeforePreview = null;
+
+function applyPreviewRect(rect) {
+  if (displayMethodBeforePreview === null) {
+    displayMethodBeforePreview = PlayerController.avplayDisplayMethod || "PLAYER_DISPLAY_MODE_FULL_SCREEN";
+  }
+  try {
+    PlayerController.setAvPlayDisplayRect?.(toAvPlayRect(rect), PREVIEW_DISPLAY_METHOD);
+  } catch (_) {
+    // AVPlay isn't in a state that takes a rectangle; it's applied when the stream opens.
+  }
+  // The player sets the rectangle, then the method; firmware that resets the rectangle when the
+  // method changes gets the rectangle once more, last.
+  const target = PlayerController.avplayDisplayRect;
+  const avplay = PlayerController.isUsingAvPlay?.() ? PlayerController.getAvPlay?.() : null;
+  if (!avplay || !target) return;
+  try {
+    const state = String(avplay.getState?.() || "").toUpperCase();
+    if (["IDLE", "READY", "PLAYING", "PAUSED"].includes(state)) {
+      avplay.setDisplayRect(target.x, target.y, target.width, target.height);
+    }
+  } catch (_) {
+    // Older firmware: the call above already did what it can.
+  }
+}
 
 /**
  * Sets AVPlay's small rectangle again once the stream is playing (the way the player's own
@@ -216,18 +239,23 @@ function keepPreviewRect(element, token) {
       if (preview?.token !== token || !element.isConnected) return;
       const rect = element.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      try {
-        PlayerController.setAvPlayDisplayRect?.(toAvPlayRect(rect), "PLAYER_DISPLAY_MODE_FULL_SCREEN");
-      } catch (_) {
-        // AVPlay isn't in a state that takes a rectangle; the next try may be.
-      }
+      applyPreviewRect(rect);
     }, delayMs)
   );
 }
 
+function restoreDisplayMethod() {
+  if (displayMethodBeforePreview === null) return;
+  PlayerController.avplayDisplayMethod = displayMethodBeforePreview;
+  displayMethodBeforePreview = null;
+}
+
 export function stopLivePreview({ keepLayer = false } = {}) {
   if (!preview) {
-    if (!keepLayer) clearVideoLayer();
+    if (!keepLayer) {
+      restoreDisplayMethod();
+      clearVideoLayer();
+    }
     return;
   }
   preview = null;
@@ -238,7 +266,10 @@ export function stopLivePreview({ keepLayer = false } = {}) {
   }
   // Forget the preview's small rectangle so the next playback starts full screen.
   PlayerController.avplayDisplayRect = null;
-  if (!keepLayer) clearVideoLayer();
+  if (!keepLayer) {
+    restoreDisplayMethod();
+    clearVideoLayer();
+  }
 }
 
 export function livePreviewChannelKey() {

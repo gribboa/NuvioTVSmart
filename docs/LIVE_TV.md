@@ -118,6 +118,9 @@ services/livetv-proxy.cjs   loopback pass-through: CORS, User-Agent, streamed (n
 - **The guide preview** drives PlayerController directly: the player screen becomes a transparent layer
   over the guide with the video (AVPlay's object, or the video element for hls.js) in the preview's
   rectangle. It starts after focus rests on a channel for 1 s (so scrolling past channels doesn't open a stream for each), and can be turned off in settings.
+  AVPlay uses `PLAYER_DISPLAY_MODE_AUTO_ASPECT_RATIO` for the preview: with `…_FULL_SCREEN` the 2025
+  Frame (Tizen 9) ignores the rectangle and draws the whole screen behind the box. The player's own
+  display mode is put back when the preview stops.
 - **The guide** is read on launch when older than the refresh interval, and on demand. Programmes are kept
   from "days back" to "days ahead" and pruned after each run. Parsing runs on the main thread in chunks
   that yield to the UI (simpler than a Web Worker in this build, and quick enough for a few hundred
