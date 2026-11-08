@@ -49,9 +49,13 @@ export function liveCandidatesFor(channel) {
  */
 export async function playLiveChannel(channel, { zapKeys = [], tabId = "", nowTitle = "", returnRoute = LIVE_TV_ROUTE } = {}) {
   if (!channel) return;
-  stopLivePreview();
-  const candidates = liveCandidatesFor(channel);
-  if (!candidates.length) return;
+  // The channel the preview is already playing carries on full screen without reconnecting.
+  const handedOverUrl = handOverPreview(channel);
+  if (!handedOverUrl) stopLivePreview();
+  const links = liveCandidatesFor(channel);
+  if (!links.length) return;
+  const playing = links.find((candidate) => candidate.url === handedOverUrl);
+  const candidates = playing ? [playing, ...links.filter((candidate) => candidate !== playing)] : links;
   LiveTvProfileState.setLastChannel(channel.key);
   await Router.navigate("player", {
     // No itemId/videoId: a channel must never be scrobbled, saved as progress or looked up
@@ -151,7 +155,97 @@ function clearVideoLayer() {
       node.style[property] = "";
     });
   });
+  // A handed-over stream keeps showing while the player screen opens.
+  if (handover) return;
   if (!Router.getCurrent || Router.getCurrent() !== "player") screen.style.display = "none";
+}
+
+// ---- Preview -> full screen, same stream -------------------------------------------------------
+
+// Set while the player screen opens on the stream the preview was playing: { url, timer }.
+let handover = null;
+const HANDOVER_TIMEOUT_MS = 8000;
+const ADOPTABLE_STATES = ["PLAYING", "PAUSED", "READY"];
+
+/**
+ * If the preview is playing `channel` on AVPlay, lets go of it without stopping it, so the player
+ * screen can take the running session over (see adoptPreviewSession). Returns the link that is
+ * playing, or "" when the player has to start the channel itself.
+ */
+function handOverPreview(channel) {
+  if (!Platform.isTizen() || !preview?.playing || preview.channelKey !== channel?.key) return "";
+  if (!PlayerController.isUsingAvPlay?.()) return "";
+  const url = String(PlayerController.currentPlaybackUrl || "").trim();
+  if (!url) return "";
+  preview = null;
+  restoreDisplayMethod();
+  installHandoverHook();
+  clearTimeout(handover?.timer);
+  handover = {
+    url,
+    timer: setTimeout(() => {
+      handover = null;
+    }, HANDOVER_TIMEOUT_MS)
+  };
+  const { screen, avplay } = previewElements();
+  screen?.classList.remove("livetv-preview-layer");
+  if (avplay) avplay.style.visibility = "";
+  return url;
+}
+
+/** Makes the running AVPlay session the player screen's: full screen, and "playing" events. */
+function adoptPreviewSession(controller, url, options = {}) {
+  if (!Platform.isTizen() || !controller.isUsingAvPlay?.()) return false;
+  if (String(controller.currentPlaybackUrl || "").trim() !== url) return false;
+  const avplay = controller.getAvPlay?.();
+  let state = "";
+  try {
+    state = String(avplay?.getState?.() || "").toUpperCase();
+  } catch (_) {
+    return false;
+  }
+  if (!ADOPTABLE_STATES.includes(state)) return false;
+  // What play() would have recorded; the AVPlay listener and play token stay as they are, so the
+  // session keeps reporting time to the player screen.
+  controller.currentItemType = options.itemType || controller.currentItemType;
+  controller.currentItemTitle = options.title || null;
+  controller.currentPlaybackHeaders = { ...(options.requestHeaders || {}) };
+  controller.playbackSessionActive = true;
+  controller.avplayDisplayRect = null;
+  try {
+    controller.setAvPlayDisplayRect();
+  } catch (_) {
+    // The tick timer re-applies the rectangle.
+  }
+  ["loadedmetadata", "loadeddata", "canplay", "avplaytrackschanged", "playing"].forEach((name) =>
+    controller.emitVideoEvent?.(name, { playbackEngine: controller.playbackEngine })
+  );
+  if (state !== "PLAYING") {
+    try {
+      avplay.play();
+    } catch (_) {
+      // Already starting.
+    }
+  }
+  return true;
+}
+
+function installHandoverHook() {
+  if (PlayerController.__liveTvHandoverHook) return;
+  const original = PlayerController.play;
+  if (typeof original !== "function") return;
+  PlayerController.__liveTvHandoverHook = true;
+  PlayerController.play = function liveTvPlay(url, options = {}, ...rest) {
+    const pending = handover;
+    if (pending) {
+      clearTimeout(pending.timer);
+      handover = null;
+      if (pending.url === String(url || "").trim() && adoptPreviewSession(this, pending.url, options)) {
+        return Promise.resolve();
+      }
+    }
+    return original.call(this, url, options, ...rest);
+  };
 }
 
 /**

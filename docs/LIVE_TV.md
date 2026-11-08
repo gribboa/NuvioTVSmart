@@ -124,6 +124,10 @@ services/livetv-proxy.cjs   loopback pass-through: CORS, User-Agent, streamed (n
   each time the display method is set (the player does so at open, when prepared and while starting),
   so during the preview every rectangle call ends with the rectangle again, and AVPlay's object (the hole
   the picture shows through) stays hidden until playback is reported.
+- **OK on the previewed channel** doesn't reconnect: `playLiveChannel` lets go of the preview without
+  stopping AVPlay, and a one-off wrapper on `PlayerController.play` lets the player screen adopt the
+  running session (full-screen rectangle, the usual "playing" events) when it asks for the same link.
+  Anything else (another link, AVPlay not playing, not Tizen) plays normally.
 - **The guide** is read on launch when older than the refresh interval, and on demand. Programmes are kept
   from "days back" to "days ahead" and pruned after each run. Parsing runs on the main thread in chunks
   that yield to the UI (simpler than a Web Worker in this build, and quick enough for a few hundred
